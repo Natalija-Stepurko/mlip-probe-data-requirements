@@ -1,0 +1,1404 @@
+<title>Choosing a train/test regime under limited data</title>
+<style>
+/* ---- theme tokens ------------------------------------------------------- */
+:root{
+  --paper:#F7F8F9; --panel:#FFFFFF; --ink:#16191D; --muted:#5B646E;
+  --rule:#DDE1E4; --axis:#B9C0C6; --orb:#1F6F6B; --uma:#C2681A; --mag:#4A4F55;
+  --band:#EEF1F2; --ok:#1F6F6B; --warn:#8A4B12;
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+  line-height:1.6;-webkit-font-smoothing:antialiased}
+body{padding-inline:20px}
+.wrap{max-width:1040px;margin:0 auto;padding:34px 0 96px}
+header{border-bottom:2px solid var(--ink);padding-bottom:22px;margin-bottom:34px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);margin:0 0 10px}
+h1{font-size:clamp(26px,3.6vw,38px);line-height:1.12;letter-spacing:-.02em;margin:0 0 14px;
+  text-wrap:balance;font-weight:640}
+.lede{font-size:17px;color:var(--muted);margin:0}
+h2{font-size:21px;letter-spacing:-.01em;margin:52px 0 8px;font-weight:640}
+h3{font-size:14px;font-weight:640;margin:26px 0 8px;display:flex;align-items:center;gap:8px}
+h3 .swatch{width:18px;height:3px;border-radius:2px}
+.sub{color:var(--muted);font-size:15px;margin:0 0 20px}
+p{margin:0 0 14px}
+.legend{display:flex;gap:24px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;
+  color:var(--muted);margin:0 0 18px}
+.key{display:inline-flex;align-items:center;gap:7px}
+.swatch{width:16px;height:3px;border-radius:2px;display:inline-block}
+.ceil{display:inline-block;width:16px;height:2px;background:#5B646E;opacity:0.9;vertical-align:middle;margin-right:5px}
+.dash{width:16px;height:0;border-top:1.5px dashed currentColor;display:inline-block}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:860px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{margin:0;background:var(--panel);border:1px solid var(--rule);border-radius:3px;
+  padding:12px 10px 6px}
+.panel figcaption{font-family:var(--mono);font-size:11.5px;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--muted);margin:0 0 4px;padding-left:4px}
+.panel svg{width:100%;height:auto;display:block}
+.scroll{overflow-x:auto;border:1px solid var(--rule);border-radius:3px;background:var(--panel);
+  margin:0 0 8px;max-height:520px;overflow-y:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:6px 14px;text-align:left;border-bottom:1px solid var(--rule);white-space:nowrap}
+th{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);font-weight:500;background:#F2F4F5;position:sticky;top:0}
+td[rowspan]{vertical-align:top;font-weight:600;border-right:1px solid var(--rule)}
+tbody tr:last-child td{border-bottom:none}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+tr.settled{background:#EEF3F3}
+tr.settled .num:last-child{font-weight:700;color:var(--orb)}
+.call{border-left:3px solid var(--orb);background:#EEF3F3;padding:16px 22px;margin:22px 0;
+  border-radius:0 3px 3px 0}
+.call.warn{border-left-color:var(--uma);background:#FAF2EA}
+.call p:last-child{margin:0}
+
+.steps{counter-reset:step;margin:26px 0 0}
+.step{counter-increment:step;position:relative;padding:0 0 22px 46px;
+  border-left:1px solid var(--rule);margin-left:12px}
+.step:last-child{border-left-color:transparent;padding-bottom:4px}
+.step::before{content:counter(step);position:absolute;left:-13px;top:-2px;width:26px;
+  height:26px;border-radius:50%;background:var(--panel);border:1px solid var(--rule);
+  color:var(--muted);font-family:var(--mono);font-size:11px;display:flex;
+  align-items:center;justify-content:center}
+.step h3{margin:0 0 6px;font-size:15px;font-weight:640}
+.why{color:var(--muted);font-size:14px;border-left:2px solid var(--rule);
+  padding-left:12px;margin:10px 0 0}
+.step .scroll{margin:12px 0 4px}
+.ask{background:var(--panel);border:1px solid var(--rule);border-radius:3px;
+  padding:18px 22px;margin:0 0 4px}
+.ask p{margin:0;font-size:15px}
+code{font-family:var(--mono);font-size:.9em;background:#EDEFF1;padding:1px 5px;border-radius:3px}
+footer{margin-top:64px;padding-top:18px;border-top:1px solid var(--rule);
+  font-family:var(--mono);font-size:11.5px;color:var(--muted);line-height:1.8}
+/* ---- interactive split explorer ---------------------------------------- */
+.try{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:26px;
+  background:var(--panel);border:1px solid var(--rule);border-radius:3px;
+  padding:20px 22px;margin:18px 0 10px}
+@media (max-width:720px){.try{grid-template-columns:minmax(0,1fr)}}
+.try-controls,.try-read{display:flex;flex-direction:column;gap:16px;min-width:0}
+.try-row{display:flex;align-items:center;gap:10px}
+.try-lab{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.try-sel{font-family:var(--sans);font-size:13px;color:var(--ink);background:var(--paper);
+  border:1px solid var(--rule);border-radius:2px;padding:4px 8px;flex:1;min-width:0}
+.try-seg{display:flex;border:1px solid var(--rule);border-radius:2px;overflow:hidden}
+.try-seg-b{font-family:var(--sans);font-size:12px;padding:4px 12px;border:0;cursor:pointer;
+  background:var(--paper);color:var(--muted)}
+.try-seg-b.is-on{background:var(--accent);color:#fff}
+.try-seg-b:focus-visible,.try-sel:focus-visible,.try input[type=range]:focus-visible{
+  outline:2px solid var(--accent);outline-offset:2px}
+.try-slider{display:flex;flex-direction:column;gap:5px}
+.try-head{display:flex;justify-content:space-between;align-items:baseline}
+.try-out{font-family:var(--mono);font-size:15px;color:var(--ink);font-variant-numeric:tabular-nums}
+.try input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:3px;
+  background:var(--rule);border-radius:2px;margin:6px 0}
+.try input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;
+  border-radius:50%;background:var(--accent);cursor:pointer;border:2px solid var(--panel);
+  box-shadow:0 0 0 1px var(--accent)}
+.try input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;
+  background:var(--accent);cursor:pointer;border:2px solid var(--panel);box-shadow:0 0 0 1px var(--accent)}
+.try-scale{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;
+  color:var(--muted)}
+.try-floor{color:var(--ink)}
+.try-nums{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px}
+.try-n{display:flex;flex-direction:column;gap:2px}
+.try-k{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.try-v{font-family:var(--mono);font-size:19px;color:var(--ink);font-variant-numeric:tabular-nums}
+.try-n-tot .try-v{font-weight:600}
+.try-bar-wrap{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.try-bar{display:flex;height:16px;border-radius:2px;overflow:hidden;background:var(--rule)}
+.try-seg-s{background:var(--accent)}
+.try-seg-p{background:var(--muted);opacity:.45}
+.try-legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:10.5px;color:var(--muted)}
+.try-legend .sw{display:inline-block;width:9px;height:9px;border-radius:1px;margin-right:5px}
+.sw-s{background:var(--accent)}
+.sw-p{background:var(--muted);opacity:.45}
+.try-why{font-size:11.5px;line-height:1.5;margin:2px 0 0;min-height:3.2em}
+@media (prefers-reduced-motion:no-preference){
+  .try-seg-s,.try-seg-p{transition:width .12s linear}}
+/* ---- reference-material disclosure -------------------------------------- */
+details.every{border:1px solid var(--rule);border-radius:3px;background:var(--panel);
+  margin:14px 0}
+details.every>summary{cursor:pointer;padding:9px 13px;font-size:12px;color:var(--muted);
+  list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px}
+details.every>summary::-webkit-details-marker{display:none}
+details.every>summary::after{content:"show";font-family:var(--mono);font-size:10px;
+  letter-spacing:.06em;color:var(--muted);border:1px solid var(--rule);border-radius:2px;
+  padding:1px 6px}
+details.every[open]>summary::after{content:"hide"}
+details.every>summary:focus-visible{outline:2px solid var(--orb);outline-offset:-2px}
+details.every .inner{padding:0 13px 13px}
+/* ---- segmented toggles -------------------------------------------------- */
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:2px;overflow:hidden;
+  background:var(--panel)}
+.seg button{font-family:var(--sans);font-size:12px;padding:4px 13px;border:0;cursor:pointer;
+  background:transparent;color:var(--muted)}
+.seg button.on{background:var(--orb);color:var(--panel)}
+.seg button:focus-visible{outline:2px solid var(--orb);outline-offset:-2px}
+.ctl{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin:10px 0 4px}
+.ctl-lab{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+/* ---- split-fraction explorer -------------------------------------------- */
+.sfx{background:var(--panel);border:1px solid var(--rule);border-radius:3px;padding:16px 18px;
+  margin:16px 0}
+.sfx-cap{font-size:12px;color:var(--muted);margin:8px 0 0;line-height:1.5}
+.sfx-cap b{color:var(--ink);font-family:var(--mono);font-variant-numeric:tabular-nums}
+/* ---- CV cell explorer --------------------------------------------------- */
+.cvx{background:var(--panel);border:1px solid var(--rule);border-radius:3px;padding:16px 18px;
+  margin:16px 0}
+.cvx-strip{display:flex;flex-wrap:wrap;gap:10px 26px;margin-bottom:12px}
+.cvx-stat{display:flex;flex-direction:column;gap:1px}
+.cvx-stat .k{font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.cvx-stat .v{font-family:var(--mono);font-size:17px;color:var(--ink);
+  font-variant-numeric:tabular-nums}
+.cvx-tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--paper);
+  font-family:var(--mono);font-size:10.5px;padding:5px 8px;border-radius:2px;opacity:0;
+  transition:opacity .1s;white-space:pre;z-index:5}
+/* ---- decision rule + limitations ---------------------------------------- */
+.rule-box{border:1px solid var(--orb);border-radius:3px;background:var(--panel);
+  padding:14px 16px;margin:16px 0}
+.rule-box .tag{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--orb);
+  display:block;margin-bottom:5px}
+.limits{border:1px solid var(--rule);border-left:3px solid var(--warn);border-radius:3px;
+  background:var(--panel);padding:14px 16px;margin:18px 0}
+.limits .tag{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--warn);
+  display:block;margin-bottom:5px}
+.limits ul{margin:6px 0 0;padding-left:18px}
+.limits li{margin:3px 0}
+/* ---- references ---------------------------------------------------------- */
+.refs{font-size:12px;line-height:1.65;color:var(--muted)}
+.refs li{margin:5px 0}
+.refs b{color:var(--ink);font-weight:600}
+@media (max-width:520px){
+  .try{grid-template-columns:minmax(0,1fr)}
+  .cvx-strip{gap:8px 16px}}
+/* ---- calculator additions ------------------------------------------------ */
+.try-range{font-size:11px;color:var(--warn);margin:0;min-height:1.4em}
+.ceilbar{display:flex;flex-direction:column;gap:5px;width:100%}
+.ceil-track{height:6px;border-radius:3px;background:var(--rule);overflow:hidden}
+.ceil-fill{height:100%;background:var(--accent)}
+.ceil-cap{font-family:var(--mono);font-size:10px;color:var(--muted);margin:0;
+  font-variant-numeric:tabular-nums}
+.try-why.warn strong{color:var(--warn)}
+.try-why.near strong{color:var(--ink)}
+
+.why-list{margin:10px 0 20px;padding-left:20px;font-size:14px;line-height:1.65}
+.why-list li{margin:7px 0}
+
+/* ---- figure sizing ------------------------------------------------------ */
+svg{max-width:100%;height:auto}
+svg[viewBox^="0 0 700"]{display:block;width:100%;max-width:700px;margin:0 auto}
+/* ---- readout: let content set the height, nothing clipped or stacked ----- */
+.try-nums{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 20px;align-items:start}
+.try-n{min-width:0}
+.try-k{line-height:1.3}
+.try-v{line-height:1.25;overflow-wrap:anywhere}
+.try-head{gap:10px}
+.try-why{min-height:0;overflow-wrap:break-word;margin-top:9px}
+.try-range{min-height:0}
+.try-legend{line-height:1.45}
+/* ---- figure colour key -------------------------------------------------- */
+.keyline{display:flex;flex-wrap:wrap;gap:6px 18px;margin:6px 0 10px;font-size:11.5px;
+  color:var(--muted)}
+.key{display:inline-flex;align-items:center;gap:6px}
+.kc{width:14px;height:3px;border-radius:2px;display:inline-block}
+.kd{width:14px;height:0;border-top:1.5px dashed var(--muted);display:inline-block}
+.kb{width:14px;height:9px;border-radius:2px;display:inline-block;background:var(--orb);
+  opacity:.18;border:1px solid var(--rule)}
+/* ---- section nav -------------------------------------------------------- */
+.topnav{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--paper) 88%,transparent);
+  backdrop-filter:blur(8px);border-bottom:1px solid var(--rule);
+  margin-inline:-20px;padding-inline:20px}
+.topnav .inner{max-width:1040px;margin:0 auto;display:flex;align-items:center;
+  justify-content:space-between;gap:16px;height:54px}
+.topnav .brand{font-family:var(--mono);font-size:12px;color:var(--ink);white-space:nowrap}
+.topnav ul{list-style:none;margin:0;padding:0;display:flex;gap:20px;font-family:var(--mono);
+  font-size:11px;letter-spacing:.06em;text-transform:uppercase;overflow-x:auto;
+  scrollbar-width:none}
+.topnav ul::-webkit-scrollbar{display:none}
+.topnav a{color:var(--muted);text-decoration:none;white-space:nowrap}
+.topnav a:hover,.topnav a:focus-visible{color:var(--orb)}
+.topnav a.here{color:var(--ink)}
+h2{scroll-margin-top:66px}
+@media(max-width:720px){.topnav .brand{display:none}.topnav ul{gap:16px}}
+.intro{margin:36px 0 8px}
+.intro>p{margin:18px 0 6px}
+.intro>p:first-child{margin-top:0}
+</style>
+<nav class="topnav"><div class="inner">
+<span class="brand">train / test under limited data</span>
+<ul>
+<li><a href="#calc">Calculator</a></li>
+<li><a href="#design">Design</a></li>
+<li><a href="#training">Training</a></li>
+<li><a href="#test">Test</a></li>
+<li><a href="#per-target">Per&nbsp;target</a></li>
+<li><a href="#composition">Composition</a></li>
+<li><a href="#split">Split</a></li>
+<li><a href="#floor">Floor</a></li>
+<li><a href="#cv">CV</a></li>
+<li><a href="#conclusion">Conclusion</a></li>
+</ul></div></nav>
+<div class="wrap">
+<header>
+<p class="eyebrow">Companion to Stepurko,&nbsp;N. &amp; Laulainen,&nbsp;J. (2026), <em>Out-of-training properties in frozen interatomic potential embeddings are decodable and ordered by physical scale</em> &mdash; accepted at the AI4Sci and AI4Mat workshops, NeurIPS 2026. The paper is released in November 2026; the code and result tables behind this page are at <a href="https://github.com/Natalija-Stepurko/mlip-probe-data-requirements">mlip-probe-data-requirements</a>.</p>
+<h1>Choosing a train/test regime when data is limited</h1>
+<p class="lede">A probe trained on a few hundred materials gets a score. That score
+carries two errors that are usually conflated. The <strong>shortfall</strong> is how far
+it sits below what the same probe reaches on more data; it is set by training size and
+always points down. The <strong>spread</strong> is how far it moves when the split is
+redrawn; it is set by test size. This page measures the two separately, on frozen ORB-v3 and UMA-S embeddings over nine Materials Project properties, with
+composition-only Magpie features run on the same draws as a baseline, and uses the result
+to decide how much data is enough, where to put the split,<span class="needs-cv"> whether cross-validation is
+worth it,</span> and from how many materials an embedding's score says more than the formula.</p>
+</header>
+
+<h2 id="calc">What would my score mean?</h2>
+<p class="sub">Pick a target and two sizes. Everything below is how these numbers were
+measured.</p>
+
+<div class="try" id="try">
+  <div class="try-controls">
+    <div class="try-row">
+      <label class="try-lab" for="tTarget">target</label>
+      <select id="tTarget" class="try-sel"></select>
+    </div>
+    <div class="try-row">
+      <span class="try-lab">features</span>
+      <div class="try-seg" role="radiogroup" aria-label="features">
+        <button type="button" class="try-seg-b is-on" data-emb="orb" role="radio" aria-checked="true">ORB-v3</button>
+        <button type="button" class="try-seg-b" data-emb="uma" role="radio" aria-checked="false">UMA-S</button>
+        <button type="button" class="try-seg-b" data-emb="magpie" role="radio" aria-checked="false">Magpie</button>
+      </div>
+    </div>
+
+    <div class="try-slider">
+      <div class="try-head"><label class="try-lab" for="tTrain">training materials</label>
+        <output class="try-out" id="oTrain">5,000</output></div>
+      <input type="range" id="tTrain" min="0" max="1000" value="769">
+      <div class="try-scale"><span id="sTrainLo">50</span><span id="sTrainHi">20,000</span></div>
+    </div>
+
+    <div class="try-slider">
+      <div class="try-head"><label class="try-lab" for="tTest">test materials</label>
+        <output class="try-out" id="oTest">200</output></div>
+      <input type="range" id="tTest" min="0" max="1000" value="371">
+      <div class="try-scale"><span id="sTestLo">20</span><span id="sTestHi">10,000</span></div>
+    </div>
+
+    <p class="try-range" id="tRange"></p>
+  </div>
+
+  <div class="try-read">
+    <div class="try-nums">
+      <div class="try-n"><span class="try-k">expected score</span><span class="try-v" id="vScore">0.823</span></div>
+      <div class="try-n"><span class="try-k">shortfall</span><span class="try-v" id="vShort">0.061</span></div>
+      <div class="try-n"><span class="try-k">spread p10&ndash;p90</span><span class="try-v" id="vSpread">0.128</span></div>
+      <div class="try-n try-n-tot"><span class="try-k">total error</span><span class="try-v" id="vTotal">0.098</span></div>
+    </div>
+
+    <div class="ceilbar">
+      <span class="try-k">how far to the ceiling</span>
+      <div class="ceil-track"><div class="ceil-fill" id="ceilFill" style="width:93.1%"></div></div>
+      <p class="ceil-cap" id="ceilCap">0.823 of 0.885 reached (R²)</p>
+    </div>
+
+    <div class="try-bar-wrap">
+      <span class="try-k">what the error is made of</span>
+      <div class="try-bar" id="bar" role="img" aria-label="error budget">
+        <div class="try-seg-s" id="segS" style="width:39.3%"></div><div class="try-seg-p" id="segP" style="width:60.7%"></div>
+      </div>
+      <div class="try-legend">
+        <span><i class="sw sw-s"></i> shortfall</span>
+        <span><i class="sw sw-p"></i> spread &mdash; shares of squared error, which is how the two combine</span>
+      </div>
+      <p class="try-why" id="tWhy"></p>
+    </div>
+  </div>
+</div>
+
+<p class="sub">The score and the spread are both read off the measured curves. The
+<strong>total error</strong> combines them as &radic;(shortfall&sup2;&nbsp;+&nbsp;sd&sup2;). The bar splits that total by <em>squared</em> contribution. One adjustment goes into the total: the spread
+was measured on a probe trained on 20,000 materials (6,427 for bulk modulus). A probe trained on less sits
+further from its ceiling and scatters more, so the spread is scaled up by
+(1&minus;score)/(1&minus;ceiling) first. This treats the 20,000-material probe as if it were at its ceiling, so the scaled spread errs high.</p>
+<div class="intro"><p><strong>What this page measures.</strong></p>
+<ul class="why-list">
+<li>The size of each error, in R&sup2; or macro-F1, for frozen ORB-v3 and UMA-S
+embeddings on nine Materials Project targets: formation energy, energy above hull,
+band gap, density, magnetic density, bulk modulus, crystal system,
+metal&nbsp;/&nbsp;insulator and magnetic&nbsp;/&nbsp;not.</li>
+<li class="needs-cv">Whether cross-validation's advantage survives measurement at the few hundred to few
+thousand materials an experimental dataset actually has.</li>
+<li>Whether the answer depends on which model produced the embedding.</li>
+<li>How much of each score composition alone accounts for, and from how many materials
+the embedding's lead over it is resolvable.</li>
+</ul>
+
+<p><strong>Why two models.</strong> Shortfall varies five- to ninefold across targets at a
+fixed training size, so a threshold derived from one property would be wrong for the
+next, and one derived from one model might be wrong for another. ORB-v3 and UMA-S are
+architecturally opposite: a non-equivariant force field, and an equivariant multi-task model with
+a spherical-harmonic backbone. Agreement between them makes the thresholds a property of
+the task.</p>
+
+<p><strong>Why a composition baseline.</strong> Magpie (Ward et al., 2016) turns a
+formula into 132 statistics of its elements' properties and sees no structure. Run
+through the same probe on the same draws, it marks how much of each score the formula
+alone supplies, and the embedding's contribution is the difference.</p>
+
+<p><strong>Where the ceilings come from.</strong> Every score on this page
+is measured against the <em>full-corpus score</em>: what the same probe and embedding
+reach on an 80/20 split of all 154,875 materials (12,853 for bulk modulus). Those numbers are
+taken from Stepurko,&nbsp;N. &amp; Laulainen,&nbsp;J. (2026), <em>Out-of-training
+properties in frozen interatomic potential embeddings are decodable and ordered by
+physical scale</em>, accepted at the AI4Sci and AI4Mat workshops, NeurIPS 2026. Magpie's ceilings are the same manuscript's
+composition-baseline control: the same probe on the Magpie features, full 80/20 split.</p></div>
+
+<h2 id="why">Known from the literature</h2>
+<ul class="why-list">
+<li>Test-set size sets the variance of a score; training-set size sets its bias
+(Hastie, Tibshirani &amp; Friedman, 2009, ch.&nbsp;7).</li>
+<li>At around 100 samples a cross-validated score carries error bars of roughly
+&plusmn;10&nbsp;% (Varoquaux, 2018).</li>
+<li>Learning curves rise monotonically with training size and rarely saturate at the
+sizes a study can afford (Cortes et al., 1994; Xu et al., 2023).</li>
+<li>Cross-validation estimates how well the <em>procedure</em> does on average at that
+training size, not how well the one model you fitted will do (Bates, Hastie &amp;
+Tibshirani, 2023).</li>
+<li>The k fold scores from one cross-validation are not independent &mdash; every pair
+of folds shares most of its training data &mdash; so no formula can turn their scatter
+into a correct error bar in general; any such estimate is biased (Bengio &amp;
+Grandvalet, 2004).<span class="needs-cv"> That is why this page measures interval coverage directly.</span></li>
+</ul>
+
+<h2 id="design">The design</h2>
+
+<p>Everything here is measured on <strong>154,875 Materials Project crystals</strong>,
+each represented by one frozen ORB-v3 or UMA-S embedding vector or by its 132 Magpie
+composition features, with XGBoost as the probe. The three matrices share one row order,
+so at every size the frozen test set and each training draw are the same materials for
+all three arms. Every score is compared against the full-corpus score for that target and
+feature set, from the manuscript cited at the top of the page.</p>
+
+<p><strong>Nine targets</strong> carry the curves. Six regressions: formation energy per atom, energy above hull, band gap, density, magnetic density, and bulk modulus &mdash; the last on the 12,853-material elastic subset, the rest on the full corpus. Three classifications: crystal system (seven classes), metal&nbsp;/&nbsp;insulator, and magnetic&nbsp;/&nbsp;not.</p>
+
+<svg viewBox="0 0 700 232" role="img" aria-label="Axis 1 varies training size and scores on a frozen 20,000-material reference. Axis 2 fixes one probe and re-scores it on random subsets of the reference.">
+  <rect x="12" y="10" width="676" height="34" rx="2" style="fill:var(--band);stroke:var(--rule)"/>
+  <text x="350" y="26" text-anchor="middle" font-size="11.5" fill="var(--ink)">154,875 materials, split once</text>
+  <text x="350" y="38" text-anchor="middle" font-size="9.5" fill="var(--muted)">20,000 frozen as a reference &#183; the rest form the pool that probes are trained from</text>
+
+  <text x="12" y="70" font-size="10" fill="var(--orb)" font-weight="600">AXIS 1 &#183; vary training size &rarr; gives the SHORTFALL</text>
+  <rect x="12" y="78" width="120" height="40" rx="2" style="fill:var(--panel);stroke:var(--rule)"/>
+  <text x="72" y="94" text-anchor="middle" font-size="10" fill="var(--ink)">draw n materials</text>
+  <text x="72" y="107" text-anchor="middle" font-size="9" fill="var(--muted)">50 &hellip; 20,000</text>
+  <path d="M132 98 L176 98" style="stroke:var(--orb);stroke-width:1.4"/><path d="M172 94 L180 98 L172 102 Z" style="fill:var(--orb)"/>
+  <rect x="180" y="78" width="110" height="40" rx="2" style="fill:var(--panel);stroke:var(--rule)"/>
+  <text x="235" y="98" text-anchor="middle" font-size="10" fill="var(--ink)">train a probe</text>
+  <text x="235" y="111" text-anchor="middle" font-size="9" fill="var(--muted)">on those n only</text>
+  <path d="M290 98 L334 98" style="stroke:var(--orb);stroke-width:1.4"/><path d="M330 94 L338 98 L330 102 Z" style="fill:var(--orb)"/>
+  <rect x="338" y="78" width="150" height="40" rx="2" style="fill:var(--band);stroke:var(--ink);stroke-dasharray:3 2"/>
+  <text x="413" y="94" text-anchor="middle" font-size="10" fill="var(--ink)">score on all 20,000</text>
+  <text x="413" y="107" text-anchor="middle" font-size="9" fill="var(--muted)">the same reference every time</text>
+  <path d="M488 98 L532 98" style="stroke:var(--orb);stroke-width:1.4"/><path d="M528 94 L536 98 L528 102 Z" style="fill:var(--orb)"/>
+  <text x="540" y="94" font-size="10" fill="var(--ink)">repeat up to 30&times; per size</text>
+  <text x="540" y="107" font-size="9.5" fill="var(--orb)">how far below full corpus?</text>
+
+  <line x1="12" y1="140" x2="688" y2="140" style="stroke:var(--rule)"/>
+
+  <text x="12" y="166" font-size="10" fill="var(--uma)" font-weight="600">AXIS 2 &#183; vary how many materials are scored &rarr; gives the SPREAD</text>
+  <rect x="12" y="174" width="130" height="40" rx="2" style="fill:var(--panel);stroke:var(--rule)"/>
+  <text x="77" y="190" text-anchor="middle" font-size="10" fill="var(--ink)">train ONE probe</text>
+  <text x="77" y="203" text-anchor="middle" font-size="9" fill="var(--muted)">on 20,000, once</text>
+  <path d="M142 194 L186 194" style="stroke:var(--uma);stroke-width:1.4"/><path d="M182 190 L190 194 L182 198 Z" style="fill:var(--uma)"/>
+  <rect x="190" y="174" width="150" height="40" rx="2" style="fill:var(--band);stroke:var(--ink);stroke-dasharray:3 2"/>
+  <text x="265" y="190" text-anchor="middle" font-size="10" fill="var(--ink)">predict the reference</text>
+  <text x="265" y="203" text-anchor="middle" font-size="9" fill="var(--muted)">20,000 predictions, fixed</text>
+  <path d="M340 194 L384 194" style="stroke:var(--uma);stroke-width:1.4"/><path d="M380 190 L388 194 L380 198 Z" style="fill:var(--uma)"/>
+  <rect x="388" y="168" width="140" height="52" rx="2" style="fill:var(--panel);stroke:var(--rule)"/>
+  <text x="458" y="184" text-anchor="middle" font-size="10" fill="var(--ink)">score a random</text>
+  <text x="458" y="196" text-anchor="middle" font-size="10" fill="var(--ink)">subset of n materials</text>
+  <text x="458" y="210" text-anchor="middle" font-size="9" fill="var(--muted)">20 &hellip; 10,000 of them</text>
+  <path d="M528 194 L572 194" style="stroke:var(--uma);stroke-width:1.4"/><path d="M568 190 L576 194 L568 198 Z" style="fill:var(--uma)"/>
+  <text x="580" y="190" font-size="10" fill="var(--ink)">repeat 200&times;</text>
+  <text x="580" y="203" font-size="9.5" fill="var(--uma)">how much does it move?</text>
+</svg>
+
+<p class="sub">Training grid: 50, 100, 200, 500, 1,000 and 2,000 at 30 draws per size,
+extended to 5,000, 7,000, 10,000 and 20,000 at 10, 7, 7 and 6 draws. Test grid: 20 to 10,000 at 200
+draws per size, plus the full 20,000-material test set once. Bulk modulus stops at 5,000 on both axes, with 12, 6, 3 and 1 training draws at 500, 1,000, 2,000 and 5,000.</p>
+
+<details class="every"><summary>Worked through step by step, on band gap &mdash; what each axis looks like in numbers</summary><div class="inner">
+<div class="steps"><div class="step"><h3>Training size &mdash; read the spread</h3>
+<p>Band gap, XGBoost, ORB backbone, 30 draws per size up to 2,000, then 10, 7, 7 and 6 at 5,000, 7,000, 10,000 and 20,000:</p>
+<div class="scroll"><table>
+<thead><tr><th>N train</th><th class="num">median R&sup2;</th><th class="num">worst draw</th><th class="num">best draw</th></tr></thead>
+<tbody>
+<!--{{tbl_design_train}}-->
+</tbody></table></div>
+<p>At N = 50 the answer ranges from &minus;0.04 to 0.40 on luck alone &mdash; a negative R&sup2; means worse than predicting the average. At N = 500 thirty draws agree to within 0.07.</p></div>
+
+<div class="step"><h3>Test size &mdash; do it again, separately</h3>
+<p>Train once, then score on 20, 50, 100 &hellip; randomly drawn test materials, 200 draws each, and on all 20,000 once. Same target and probe as above, with training now held fixed:</p>
+<div class="scroll"><table>
+<thead><tr><th>N test</th><th class="num">median R&sup2;</th><th class="num">worst draw</th><th class="num">best draw</th></tr></thead>
+<tbody>
+<!--{{tbl_design_test}}-->
+</tbody></table></div>
+<p><strong>The median barely moves</strong> &mdash; 0.890 to 0.864 &mdash; while the worst draw climbs from &minus;0.28 to 0.84 at 10,000. At 20 test materials a single run could report anything from &minus;0.28 to 0.99 for the same model.</p>
+</div>
+
+<div class="step"><h3>Two thresholds, because two different things go wrong</h3>
+<p>The two axes fail differently, and the tables above show it. Too little <strong>training</strong> data pushes the score <strong>down</strong> &mdash; the median climbs 0.271 &rarr; 0.862. The number stays valid, just a lower bound.</p>
+<p>Too little <strong>test</strong> data barely biases the score; it blurs it. The median holds near 0.87 while the worst draw moves by 1.1. So a training shortfall understates your embedding, and a test shortfall means the number simply will not reproduce &mdash; which is why they are reported as two numbers, a spread and a shortfall.</p>
+</div></div>
+</div></details>
+
+<h2 id="training">Training size sets the shortfall</h2>
+<p class="keyline"><span class="key"><i class="kc" style="background:var(--orb)"></i>ORB-v3</span><span class="key"><i class="kc" style="background:var(--uma)"></i>UMA-S</span><span class="key"><i class="kc" style="background:var(--mag)"></i>Magpie, composition only</span><span class="key"><i class="kd"></i>dashed: that arm's full-corpus score</span><span class="key"><i class="kb"></i>band: p10&ndash;p90 across draws</span></p>
+
+<div class="ctl">
+  <span class="ctl-lab">show</span>
+  <div class="seg" role="radiogroup" aria-label="view">
+    <button type="button" id="vScoreBtn" class="on" role="radio" aria-checked="true">score</button>
+    <button type="button" id="vGapBtn" role="radio" aria-checked="false">shortfall from ceiling</button>
+  </div>
+</div>
+<div id="figScore"><!--{{fig_train}}--></div>
+<div id="figGap" hidden><!--{{fig_shortfall}}--></div>
+<p><strong>The point where a score stabilises and the point where it stops rising are
+different.</strong> Most targets' bands collapse between 100 and 500 training materials;
+energy above hull needs 2,000. But band gap under XGBoost has a spread below 0.05 from
+n&nbsp;=&nbsp;500, where it scores 0.669, and keeps climbing to 0.778 at
+n&nbsp;=&nbsp;2,000 against a full-corpus value of 0.885. A score can be perfectly
+reproducible and still well short of what the embedding can do.</p>
+<p>Magpie, the composition-only arm, sits below both embeddings from 100 training materials on
+six targets. On density it is ahead of both up to 500 training materials and level at 1,000; on
+bulk modulus the three arms are not separable until about 1,000; on magnetic density it
+is level with or ahead of UMA-S and ahead of ORB-v3 at every size from 500. The composition section measures
+those differences on paired draws.</p>
+<details class="every"><summary>Full data &mdash; every training size, both embeddings and Magpie</summary><div class="inner"><p class="sub">Every N on the grid, both embeddings and the composition baseline. The highlighted row is where the spread first falls below 0.05 and stays there. Worst and best draw are the extremes across that row’s draws. Shortfall is the distance from the full-corpus score.</p>
+<div class="scroll"><table>
+<thead><tr><th>target</th><th>features</th><th class="num">n train</th><th class="num">draws</th><th class="num">median</th><th class="num">worst draw</th><th class="num">best draw</th><th class="num">spread</th><th class="num">full-corpus</th><th class="num">shortfall</th></tr></thead>
+<tbody>
+<!--{{tbl_train}}-->
+</tbody></table></div>
+</div></details><h2 id="test">Test size sets the spread</h2>
+<p class="sub">The probe is fitted once on 20,000 materials (6,427 on bulk modulus); only the materials it is scored on change.</p>
+<p class="keyline"><span class="key"><i class="kc" style="background:var(--orb)"></i>ORB-v3</span><span class="key"><i class="kc" style="background:var(--uma)"></i>UMA-S</span><span class="key"><i class="kc" style="background:var(--mag)"></i>Magpie, composition only</span><span class="key"><i class="kd"></i>dashed: that arm's full-corpus score</span><span class="key"><i class="kb"></i>band: p10&ndash;p90 across draws</span></p>
+<!--{{fig_test}}-->
+<p><strong>Test size moves the spread and little else.</strong> Across the
+grid the p10&ndash;p90 spread falls from <span data-live="sp20">0.239</span> at 20 test materials to <span data-live="sp5000">0.010</span> at 5,000 &mdash; a factor of
+<span data-live="spRatio">24</span> &mdash; while from 200 test materials up the median moves by no more than 0.021. At 200 test materials
+a re-split moves a typical score by about &plusmn;<span data-live="half200">0.040</span>; at 500, &plusmn;<span data-live="half500">0.024</span>; at 1,000,
+&plusmn;<span data-live="half1000">0.016</span>. This is the axis that decides whether a number reproduces, and the spread at a given
+test size depends on the property being predicted: at 200 test materials ORB-v3's spread runs
+from 0.018 on formation energy to 0.189 on magnetic density.</p>
+<p>It is not independent of how well the probe scores. Magpie's spread on the regression
+targets is wider than the embeddings' at every test size up to 500 &mdash; on formation energy
+<span data-live="magSp200">0.127</span> against <span data-live="orbSp200">0.018</span>
+for ORB-v3 at 200 test materials &mdash; and on formation energy the ratio tracks 1&nbsp;&minus;&nbsp;R&sup2;:
+a probe further from a perfect score scatters more. The calculator applies that rescaling
+before combining spread with shortfall.</p>
+<details class="every"><summary>Full data &mdash; every test size, both embeddings and Magpie</summary><div class="inner"><p class="sub">Every N on the grid, both embeddings and the composition baseline. The highlighted row is where the spread first falls below 0.05 and stays there. Worst and best draw are the extremes across that row’s draws. The model is fitted once on 20,000 materials (6,427 for bulk modulus) and only its predictions are resampled, so the shortfall moves within a curve only with the median score, by at most 0.021 from 200 test materials up.</p>
+<div class="scroll"><table>
+<thead><tr><th>target</th><th>features</th><th class="num">n test</th><th class="num">draws</th><th class="num">median</th><th class="num">worst draw</th><th class="num">best draw</th><th class="num">spread</th><th class="num">full-corpus</th><th class="num">shortfall</th></tr></thead>
+<tbody>
+<!--{{tbl_test}}-->
+</tbody></table></div>
+<div class="call">
+<p><strong>Test size moves the spread and little else.</strong> Across the grid the spread falls from 0.239 at 20 test materials to 0.010 at 5,000 &mdash; a factor of 24 &mdash; while the shortfall down each curve moves by no more than 0.021 from 200 test materials upward &mdash; for band gap under XGBoost, 0.394 to 0.031 of spread against a shortfall that moves by at most 0.021. The two axes are separable. Reaching &plusmn;0.016 on a score takes about 1,000 test materials; 500 gives &plusmn;0.024 and 200 gives &plusmn;0.040.</p>
+</div>
+
+</div></details><h2 id="per-target">One number of materials cannot describe nine targets</h2>
+<p class="sub">Shortfall at 5,000 training materials, per target, for both embeddings and for Magpie. Each bar is measured against that arm's own full-corpus score.</p>
+<p class="keyline"><span class="key"><i class="kc" style="background:var(--orb)"></i>ORB-v3</span><span class="key"><i class="kc" style="background:var(--uma)"></i>UMA-S</span><span class="key"><i class="kc" style="background:var(--mag)"></i>Magpie, composition only</span></p>
+<!--{{fig_percell}}-->
+
+<p><strong>The same number of materials is
+<span data-live="gapEasy">0.017</span> short on one target and
+<span data-live="gapHard">0.128</span> short on another.</strong> At 5,000 training
+materials formation energy is essentially at its ceiling, while crystal system is still
+0.13 of macro-F1 below it &mdash; a span of about
+<span data-live="span5k">7.7</span>&times;. ORB-v3 and UMA-S agree to within <span data-live="embAgree">0.029</span> on every target at this size, and within 0.01 on seven of the nine. The largest gaps are on energy above hull and magnetic density, where ORB-v3 sits 0.03 and 0.01 further below its ceiling than UMA-S does. Both embeddings agree on which targets need more data. Magpie shows a narrower span, 5.2&times;, from 0.031 on metal&nbsp;/&nbsp;insulator to 0.159 on energy above hull. Both spans leave out bulk modulus, which has one draw at this size; with it, Magpie's span is 12.6&times; and the embeddings' 8.6&times;. Magpie sits further below its own ceiling than the embeddings do on five targets and closer to it on density, magnetic density, bulk modulus and crystal system.</p>
+
+<div class="scroll"><table>
+<thead><tr><th>training materials</th><th class="num">5,000</th><th class="num">7,000</th>
+<th class="num">10,000</th><th class="num">20,000</th></tr></thead>
+<tbody>
+<tr><td>span, hardest / easiest target</td>
+<td class="num" data-live="span-5000">7.7&times;</td>
+<td class="num" data-live="span-7000">8.6&times;</td>
+<td class="num" data-live="span-10000">8.7&times;</td>
+<td class="num" data-live="span-20000">8.8&times;</td></tr>
+</tbody></table></div>
+
+<div class="call">
+<p><strong>At one training size the targets sit far apart.</strong> At 5,000 the shortfall is <span data-live="gapEasy">0.017</span> on formation energy and <span data-live="gapHard">0.128</span> on crystal system &mdash; about <span data-live="span5k">7.7</span>&times; larger &mdash; and adding data widens the span between hardest and easiest target, to <span data-live="span-20000">8.8&times;</span> at 20,000. The shortfall is therefore reported per target alongside the score.</p>
+</div>
+<h2 id="composition">What the formula alone gives</h2>
+<p class="sub">Magpie is run once: the same probe on 132 composition-only features, on the same frozen test set and the same training draws as both embeddings. Each panel subtracts that one Magpie score from the ORB-v3 score and from the UMA-S score on the same draw, so the two lines share a baseline and differ only in the embedding.</p>
+<p class="keyline"><span class="key"><i class="kc" style="background:var(--orb)"></i>ORB-v3 score, less Magpie</span><span class="key"><i class="kc" style="background:var(--uma)"></i>UMA-S score, less Magpie</span><span class="key"><i class="kb"></i>band: p10&ndash;p90 of the paired difference</span><span class="key"><i class="kc" style="background:var(--ink)"></i>zero: the formula does as well</span></p>
+<!--{{fig_gain}}-->
+<p><strong>Whether an embedding says more than the formula depends on the target and on the training size.</strong> On <span data-live="gainEarlyCount">6</span> of the nine targets both embeddings are ahead of composition on at least 90&nbsp;% of paired draws from <span data-live="gainEarlyMaxN">500</span> training materials or fewer, and the lead at 20,000 runs from <span data-live="gain20kLo">0.033</span> on magnetic&nbsp;/&nbsp;not to <span data-live="gain20kHi">0.712</span> on energy above hull. On density composition alone is ahead of both embeddings up to <span data-live="compDensityTo">500</span> training materials and the sign is not resolved until <span data-live="densityResolved">2,000</span>. On magnetic density neither embedding ever resolvably beats it: ORB-v3 is behind from <span data-live="magOrbBehindFrom">500</span> to 20,000, and UMA-S is behind from 2,000 to 10,000 and level at the other sizes.</p>
+<!--{{fig_gainmap}}-->
+<p class="sub">One dot per embedding, target and training size. Filled in the arm's colour: that arm ahead on at least 90&nbsp;% of the paired draws. Filled in the Magpie colour: composition ahead on at least 90&nbsp;%. Hollow: the draws disagree on the sign. Hover a dot for its numbers.</p>
+<div class="scroll"><table>
+<thead><tr><th rowspan="2">target</th><th colspan="3">ORB-v3</th><th colspan="3">UMA-S</th><th rowspan="2" class="num">measured to</th></tr>
+<tr><th class="num">ahead from</th><th class="num">composition ahead at</th><th class="num">gain at largest n</th><th class="num">ahead from</th><th class="num">composition ahead at</th><th class="num">gain at largest n</th></tr></thead>
+<tbody>
+<!--{{tbl_gain_summary}}-->
+</tbody></table></div>
+<p>&ldquo;Ahead from&rdquo; is the smallest training size from which the embedding beats Magpie on at least 90&nbsp;% of paired draws at that size and every larger one; &ldquo;composition ahead at&rdquo; applies the same standard the other way, size by size: the p90 of the paired difference below zero (at 10,000 on magnetic density under UMA-S that holds with composition ahead on 6 of 7 draws). Bulk modulus is measured to 2,000 because its corpus cannot supply three disjoint draws beyond that.</p>
+<div class="call">
+<p><strong>A score can clear both floors and still say nothing the formula did not.</strong> At 5,000 training materials, the floor, magnetic density under ORB-v3 reproduces to about &plusmn;<span data-live="magOrbHalf5k">0.009</span> and composition alone scores higher on every draw. The shortfall and the spread describe the score; neither says whether the embedding earned it. That is a third quantity, set by the target and the training size, and it belongs beside the other two.</p>
+</div>
+<details class="every"><summary>Full data &mdash; embedding minus Magpie at every training size, both embeddings</summary><div class="inner"><p class="sub">Median, p10 and p90 of the paired difference over the draws at that size, and the share of draws the embedding won. Highlighted rows have p10 above zero: the embedding ahead on at least 90&nbsp;% of draws.</p>
+<div class="scroll"><table>
+<thead><tr><th>target</th><th>embedding</th><th class="num">n train</th><th class="num">draws</th><th class="num">median</th><th class="num">p10</th><th class="num">p90</th><th class="num">embedding won</th></tr></thead>
+<tbody>
+<!--{{tbl_gain_full}}-->
+</tbody></table></div>
+</div></details>
+<h2 id="split">Where to put the split</h2>
+<p class="sub">Total error against the train/test fraction, at six dataset sizes from 200 to 10,000; the full-data tables below add 20,000.</p>
+<p>The two axes above trade against each other: every material moved into the test set is one the probe did not train on. The training-size result says that costs score and the test-size result says it buys precision. Combining the two curves gives the total error at each fraction, and so the fraction that minimises it.</p>
+<p><strong>Total error</strong> is &radic;(shortfall&sup2; + sd&sup2;). The shortfall is a bias &mdash; it points down, always &mdash; and the spread is a noise, so they are independent and add in quadrature. <code>sd</code> is the p10&ndash;p90 spread, scaled up by (1&minus;score)/(1&minus;ceiling) as in the calculator and divided by 2.5631, the p10&ndash;p90 width of a standard normal.</p>
+<div class="sfx">
+  <div class="ctl">
+    <span class="ctl-lab">dataset size</span>
+    <div class="seg" id="sfxN" role="radiogroup" aria-label="dataset size">
+      <button type="button" data-n="200" role="radio" aria-checked="false">200</button>
+      <button type="button" data-n="500" role="radio" aria-checked="false">500</button>
+      <button type="button" data-n="1000" class="on" role="radio" aria-checked="true">1,000</button>
+      <button type="button" data-n="2000" role="radio" aria-checked="false">2,000</button>
+      <button type="button" data-n="5000" role="radio" aria-checked="false">5,000</button>
+      <button type="button" data-n="10000" role="radio" aria-checked="false">10,000</button>
+    </div>
+    <span class="ctl-lab">target</span>
+    <select id="sfxT" class="try-sel" style="flex:0 1 200px"></select>
+  </div>
+  <svg id="sfxChart" viewBox="0 0 700 260" role="img" aria-label="total error against test fraction"></svg>
+  <p class="sfx-cap" id="sfxCap"></p>
+</div>
+<details class="every"><summary>Full data &mdash; total error at every split fraction, and which fraction won in each cell</summary><div class="inner"><div class="scroll"><table>
+<thead><tr><th class="num">N</th><th>split</th><th class="num">train</th><th class="num">test</th><th class="num">score</th><th class="num">shortfall</th><th class="num">spread</th><th class="num">total error</th></tr></thead>
+<tbody>
+<!--{{tbl_split_median}}-->
+</tbody></table></div><div class="scroll"><table><thead><tr><th class="num">N</th><th class="num">80/20 beats 50/50</th><th class="num">80/20 is best</th><th class="num">70/30 is best</th><th class="num">90/10 is best</th></tr></thead><tbody>
+<!--{{tbl_split_wins}}-->
+</tbody></table></div></div></details><div class="call">
+<p><strong>Shortfall costs more than spread at every dataset size from 500 up, so the minimum sits on the training side of an even split.</strong> 80/20 beats 50/50 in <span data-live="win500">15</span> of <span data-live="cells">18</span> cells at 500 materials, 16 at 1,000 and 2,000, and every cell from 5,000 up. 80/20 has the lowest median total error at 500 and 5,000; at 1,000 and 2,000 90/10 edges it by 0.004 and 0.001 while 80/20 wins more cells, 9 to 3 and 8 to 6; at 10,000 and 20,000 90/10 is lower by 0.003 and 0.002 and the cells split 11 to 5 for 80/20 and 8 to 8. At 200 materials the median minimum is 70/30 and 80/20 beats the even split in only 9 of 18 &mdash; but 200 is far below the floor this page settles on.</p>
+</div>
+
+<h2 id="floor">Choosing the floor</h2>
+<p class="sub">A sweep at 5,000 / 7,000 / 10,000 / 20,000, 10 disjoint draws at 5,000 (1 for bulk modulus), 7 at 7,000 and 10,000, and 6 at 20,000, run to decide the floor on training size.</p>
+
+<p>A floor has to be a single number, and the shortfall it is drawn from is not. What the sweep asks is whether any size in this range is a natural place to put it.</p>
+
+<div class="scroll"><table>
+<thead><tr><th>n train</th><th class="num">5,000</th><th class="num">7,000</th><th class="num">10,000</th><th class="num">20,000</th></tr></thead>
+<tbody>
+<!--{{tbl_shortfall_pooled}}-->
+</tbody></table></div>
+
+<p>Mean over the eight targets measured at every size, both embeddings, XGBoost. Bulk modulus is left out of the mean because its corpus stops the sweep at 5,000. ORB-v3 and UMA-S agree to within 0.029 at every size, and within 0.01 on all targets except energy above hull, where the gap is 0.013&ndash;0.029, and magnetic density at 5,000, where it is 0.011; both rank the targets in nearly the same order (rank correlation 0.88&ndash;0.93), so which targets need more data is a property of the task and not of either one. Materials required assume an 80/20 split.</p>
+
+<p>There is no knee. Each step buys 0.010&ndash;0.016 of shortfall and costs progressively more data &mdash; 40&nbsp;% more materials for the first step, then 43&nbsp;%, then 100&nbsp;%. Nothing in the curve distinguishes 7,000 or 10,000 from 5,000, so the floor is set by how much data it is reasonable to demand.</p>
+
+<h3>Raising the floor does not fix the target that needs fixing</h3>
+<div class="scroll"><table>
+<thead><tr><th>target</th><th class="num">5,000</th><th class="num">7,000</th><th class="num">10,000</th><th class="num">20,000</th></tr></thead>
+<tbody>
+<!--{{tbl_shortfall_targets}}-->
+</tbody></table></div>
+
+<p>Bulk modulus stops at 5,000 because its corpus holds 12,853 materials, so a training set of 7,000 cannot be drawn alongside a disjoint reference set. It is left out of the pooled mean above for the same reason: including it would change what the column averages partway along the row.</p>
+
+<p>The span across targets widens with training data. Crystal system at 20,000 is still 0.048 short &mdash; worse than formation energy is at 5,000, on four times the data. A floor set high enough to bring crystal system within 0.05 of its ceiling would be 20,000, the largest size measured, and still leave the easy targets paying for it.</p>
+
+<div class="call">
+<p><strong>The floor is 5,000 training and 200 test materials &mdash; at 80/20 the training floor takes 6,250 materials in
+total, which puts 1,250 in the test set.</strong></p>
+<p class="why">The sweep showed no natural cut between 5,000 and 20,000. This floor was
+chosen <em>after</em> seeing that curve, as the smallest size at which the shortfall is small enough to report. It is a judgement about what is
+reasonable to ask for.<span class="needs-cv"> The 30&nbsp;% bar and the coverage band in the next section were
+written down before the run.</span></p>
+</div>
+
+<p>A score below this floor is not worthless &mdash; it is a lower bound, and should be
+reported as one, with its per-target shortfall beside it. Buying 0.010 of shortfall for
+another 2,500 materials is a trade for the reader to make.</p>
+<h2 id="cv">Cross-validation against repeated holdout</h2>
+<div class="call warn cv-pending"><p>The cross-validation comparison has not been run to completion yet; its results will appear here.</p></div>
+<p class="sub needs-cv">Cross-validation is the more accurate estimator here and still does not change the answer: it cuts estimator RMSE by a median <span data-live="cvGain4">16.8</span>&nbsp;% at n&nbsp;&le;&nbsp;1,000 and is closer to the truth in <span data-live="cvWin4">84</span>&nbsp;% of cells, but its intervals contain the truth less often on average than either holdout's, and against repeated holdout total error falls by a median of under 1&nbsp;%, because every fold still trains on 80&nbsp;% and the shortfall is the larger term in 85 of the 90 cells.</p><div class="rule-box">
+<span class="tag">fixed before the run</span>
+<p>Adopt cross-validation only if its interval covers within <strong>[0.90, 0.98]</strong>
+and its estimator RMSE falls by at least <strong>30&nbsp;%</strong> at
+n&nbsp;&le;&nbsp;1,000.</p>
+<p class="why needs-cv">Coverage falls short: <span data-live="cvCov">0.808</span> on average against repeated
+holdout's <span data-live="rhCov">0.851</span> and a single split's
+<span data-live="hoCov">0.880</span>, across
+<span data-live="cvCells">90</span> cells on nine targets, with
+<span data-live="cvLow">61</span> of the cells below 0.90. So does the gain: a median
+<span data-live="cvGain2">16.8</span>&nbsp;% reduction at n&nbsp;&le;&nbsp;1,000, consistent in
+direction &mdash; cross-validation is closer to the truth in <span data-live="cvWin2">84</span>&nbsp;% of
+cells &mdash; and under the 30&nbsp;% bar.</p>
+</div>
+
+
+<p>A holdout split spends each material on training or testing, never both. Widening the test fraction buys test materials only by giving up training materials, so it trades one floor against the other. <strong>k-fold escapes that trade:</strong> split into 5 folds, train on 4 and predict the fifth, rotate. Every material trains <em>and</em> gets predicted, by a model that never saw it.</p>
+
+<div class="scroll"><table>
+<thead><tr><th>1,000 materials</th><th class="num">train per fit</th><th class="num">fits</th><th class="num">materials predicted</th></tr></thead>
+<tbody>
+<tr><td>80/20 holdout</td><td class="num">800</td><td class="num">1</td><td class="num">200</td></tr>
+<tr><td>5-fold CV</td><td class="num">800</td><td class="num">5</td><td class="num"><strong>1,000</strong></td></tr>
+</tbody></table></div>
+
+<p>Both train on 800, so any downward bias from training size is identical. Only the number of materials measured on changes &mdash; 5&times; as many, paid for in compute. On the test-size curve above, going from 200 to 1,000 test materials more than halves the spread, so the gain ought to be large.</p>
+
+<p><strong>That is where the obvious argument breaks down.</strong> Those 1,000 predictions come from <em>five different models</em>, so they are not exchangeable with 1,000 predictions from one, and the spread cannot simply be read off the test-size curve above. Whether the gain is real, and how big, has to be measured &mdash; against a truth that is constructible: a model trained on <em>n</em> materials has a true score, obtained by evaluating it on a frozen 20,000-material reference (6,426 for bulk modulus) that never entered training.<span class="needs-cv"> Every estimator is scored against that, over 20 disjoint draws per target and dataset size (fewer on bulk modulus from 500 materials up), across 2 embeddings &times; 9 targets &times; 5 dataset sizes &mdash; 90 cells.</span></p>
+
+<h3>How it was measured, step by step</h3>
+<p class="sub">The difficulty is that &ldquo;which estimator is better&rdquo; needs a truth to compare against, and on real data the true score is exactly what you do not have.</p>
+
+<div class="steps">
+
+<div class="step"><h3>Make the truth knowable</h3>
+<p>Set aside 20,000 materials as a frozen reference. A model trained on anything else has a <em>true</em> score: how it does on those 20,000. That is not an estimate &mdash; it is the answer every estimator is trying to guess.</p></div>
+
+<div class="step"><h3>Carve datasets that never touch it</h3>
+<p>Draw a dataset <em>U</em> of n materials from the remaining pool, disjoint from the reference and from every other draw. n runs 100, 200, 500, 1,000, 2,000 &mdash; the range a small dataset actually falls in.</p>
+<p class="why">Disjointness matters twice. If <em>U</em> overlapped the reference, the truth would be scored partly on materials the model trained on. If draws overlapped each other, 20 repeats would not be 20 independent trials, and the spread between them would come out too narrow.</p></div>
+
+<div class="step"><h3>Run all three estimators on the same U</h3>
+<p><strong>Single split:</strong> 80/20, fit on 0.8n, score the held-out fifth, with a bootstrap interval over it. <strong>Repeated holdout:</strong> five such splits on different seeds, report the mean, with a t-interval over the five scores. <strong>5-fold CV:</strong> five folds over the same <em>U</em>, each fitting on 0.8n and predicting its own fifth; pool all n out-of-fold predictions and score once, with a bootstrap interval over the pooled predictions.</p>
+<p class="why">Every arm fits on 0.8n, so whatever downward bias comes from training size is identical across them. All three see the same <em>U</em>, so the comparison is paired and most draw-to-draw noise drops out. What differs is only how the available materials are spent on measuring.</p></div>
+
+<div class="step"><h3>Score each against the same truth</h3>
+<p>The truth for a draw is the score of a probe fitted on all n materials of <em>U</em> &mdash; the one you would deploy &mdash; on the reference. All three estimators are scored against it.</p>
+<p class="why">The truth costs one extra fit per draw: the probe on all n materials, scored once on the reference. The split and fold models never predict the reference.</p></div>
+
+<div class="step"><h3>Repeat 20 times, and measure both</h3>
+<p><strong>Accuracy:</strong> RMSE of each estimate against its truth, across draws. <strong>Coverage:</strong> how often the reported 95&nbsp;% interval actually contains the truth.</p>
+<p class="why">Accuracy alone would mislead. An estimator can sit closer on average while claiming a confidence it has not earned, and a number that is usually close but occasionally wrong <em>without warning</em> is worse than one that is honest about its range.</p>
+<p class="why needs-cv">The third criterion &mdash; distance from the ceiling &mdash; is not measured by this run. It comes from combining these noise figures with the training-size curve earlier on the page, and it was added after the run. It also argues against adopting CV: against repeated holdout, total error changes by a median of under 1&nbsp;%.</p></div>
+
+<div class="step"><h3>Fix the decision rule before looking</h3>
+<p>CV is adopted only if its interval covers within [0.90, 0.98] <strong>and</strong> cuts estimator RMSE by at least 30&nbsp;% at n&nbsp;&le;&nbsp;1,000. Both conditions were written down in advance.<span class="needs-cv"> The ceiling comparison came later.</span></p></div>
+
+</div>
+
+<h3>Three things decide the question, and they are not the same</h3>
+<div class="scroll"><table>
+<thead><tr><th></th><th>question</th><th>bad answer looks like</th></tr></thead>
+<tbody>
+<tr><td><strong>estimator RMSE</strong></td><td>how far is the reported score from the truth about the model fitted on all n materials?</td><td>the number is off</td></tr>
+<tr><td><strong>coverage</strong></td><td>does the 95&nbsp;% interval contain that truth 95&nbsp;% of the time?</td><td>the number looks more settled than it is</td></tr>
+<tr><td><strong>distance from the ceiling</strong></td><td>how far is the reported score from what the embedding reaches on the full corpus?</td><td>the number understates the embedding</td></tr>
+</tbody></table></div>
+
+<p>The first two ask how well the estimate recovers the score of the model fitted on all n: its RMSE combines scatter with the low bias of fitting on 0.8n, and coverage asks whether the interval admits both. The third is the shortfall from the full-corpus score &mdash; the <em>bias</em> from training on a small dataset &mdash; and it is the one that answers &ldquo;how good is this embedding&rdquo;.</p>
+
+<p class="needs-cv"><strong>CV lowers estimator RMSE, covers below the required band, and changes total error against repeated holdout by a median of under 1&nbsp;%.</strong> The three do not move together: a narrower interval is an improvement only if it still contains the truth as often as it claims, and a lower estimator RMSE is worth little if the term it reduces is the smaller one. Each is checked separately below.</p>
+
+<p class="needs-cv">The third is where the practical answer lies, and it is set out after the per-cell results, since it needs both the noise figures below and the training-size curve from earlier on this page.</p>
+
+<div class="needs-cv">
+<h3>Accuracy: CV is better on average, not everywhere</h3>
+<!--{{fig_cv_gain}}-->
+<p>Reduction in estimator RMSE against repeated holdout, averaged over targets at each dataset size. Median <strong><span data-live="cvGain6">16.8</span>&nbsp;%</strong> at n&nbsp;&le;&nbsp;1,000 &mdash; real, but under the 30&nbsp;% bar. The gain does not grow with dataset size the way a reader might assume &mdash; it is largest at n&nbsp;=&nbsp;100, where the estimate is worst anyway.</p>
+
+<h3>Coverage: neither interval holds its 95&nbsp;%</h3>
+<!--{{fig_cv_coverage}}-->
+<p>Each pair is one dataset size, averaged over targets: the t-interval over the five split scores that goes with repeated holdout, and the bootstrap over the pooled out-of-fold predictions that goes with CV. The dashed line is the 0.95 the interval promises. Every mean sits below it, and CV's is the lower of the pair at 100, 200 and 2,000 materials on both embeddings, and at 1,000 on UMA-S.</p>
+
+<div class="call warn">
+<p>Across all nine targets, <span data-live="cvCells">90</span> cells, CV covers at <strong><span data-live="cvCov">0.808</span></strong> on average, against repeated holdout's <span data-live="rhCov">0.851</span> and a single split's <span data-live="hoCov">0.880</span>; <span data-live="cvLow">61</span>, <span data-live="rhLow">49</span> and <span data-live="hoLow">41</span> of the <span data-live="cvCells">90</span> cells fall below 0.90. All three averages are below the [0.90, 0.98] band the decision rule asks for, so <strong>cross-validation does not meet the coverage condition</strong>. The accuracy gain falls short as well: a median <span data-live="cvGain5">16.8</span>&nbsp;% reduction at n&nbsp;&le;&nbsp;1,000 over those nine targets, against the 30&nbsp;% bar. CV is closer to the truth in <span data-live="cvWin4">84</span>&nbsp;% of cells, so the gain is consistent; it is too small to clear the bar.</p>
+<p>All three estimates are biased low, which accounts for about half of CV's under-coverage and less of the other two's. Every estimator fits on 0.8n, and the truth is the probe fitted on all n, so the mean error is negative on all nine targets for all three estimators, on both embeddings. The size of that error differs between them: repeated holdout's mean error is larger in magnitude than CV's in 61 of the 90 cells, and on energy above hull at 100 materials on ORB-v3 it is &minus;0.87 against CV's &minus;0.11. Each interval is centred on that low estimate, and most misses leave the truth above it: 283 of CV's 317 misses, 191 of repeated holdout's 261 and 169 of the single split's 215. Shifting every interval up by the size of its cell's mean error raises average coverage from 0.81 to 0.88 for CV and from 0.88 to 0.91 for a single split; repeated holdout's rises only from 0.85 to 0.87, so its t-interval is also too narrow for the scatter of its estimate. CV's interval is the narrowest of the three in 88 of the 90 cells, and its coverage falls as the bias grows: 0.88 in the 16 cells where the bias is under a quarter of the draw-to-draw standard deviation of the error, 0.76 in the 40 where it is half or more.</p>
+<p>CV clears neither bar.</p>
+</div>
+
+<div class="cvx">
+  <div class="cvx-strip">
+    <div class="cvx-stat"><span class="k">CV closer in</span><span class="v" data-live="cvWin3">84 %</span></div>
+    <div class="cvx-stat"><span class="k">median gain, n &le; 1,000</span><span class="v" data-live="cvGain3">16.8 %</span></div>
+    <div class="cvx-stat"><span class="k">mean coverage, CV</span><span class="v" data-live="cvCov3">0.808</span></div>
+    <div class="cvx-stat"><span class="k">mean coverage, repeated holdout</span><span class="v" data-live="rhCov3">0.851</span></div>
+    <div class="cvx-stat"><span class="k">CV cells below 0.90</span><span class="v" data-live="cvLow3">61</span></div>
+    <div class="cvx-stat"><span class="k">cells</span><span class="v" data-live="cvCells3">90</span></div>
+  </div>
+  <div class="ctl">
+    <span class="ctl-lab">embedding</span>
+    <div class="seg" id="cvxE" role="radiogroup" aria-label="embedding">
+      <button type="button" data-e="orb" class="on" role="radio" aria-checked="true">ORB-v3</button>
+      <button type="button" data-e="uma" role="radio" aria-checked="false">UMA-S</button>
+    </div>
+    <span class="ctl-lab">show</span>
+    <div class="seg" id="cvxM" role="radiogroup" aria-label="metric">
+      <button type="button" data-m="red" class="on" role="radio" aria-checked="true">RMSE reduction</button>
+      <button type="button" data-m="cov" role="radio" aria-checked="false">coverage</button>
+    </div>
+  </div>
+  <div style="position:relative">
+    <svg id="cvxChart" viewBox="0 0 700 420" role="img" aria-label="cross-validation against repeated holdout, per target and dataset size"></svg>
+    <div class="cvx-tip" id="cvxTip"></div>
+  </div>
+  <p class="sfx-cap" id="cvxCap"></p>
+</div>
+<details class="every"><summary>Full data &mdash; band gap, repeated holdout and CV at every dataset size</summary><div class="inner">
+<p class="sub">Shortfall is the distance from the full-corpus score at the training size each arm uses, 0.8n.</p>
+<div class="scroll"><table>
+<thead><tr><th>emb</th><th class="num">n</th><th class="num">draws</th><th class="num">repeated holdout RMSE</th><th class="num">CV RMSE</th><th class="num">reduction</th><th class="num">repeated holdout cov.</th><th class="num">CV cov.</th><th class="num">shortfall</th></tr></thead>
+<tbody>
+<!--{{tbl_cv_target}}-->
+</tbody></table></div>
+<p>CV has the lower RMSE in <span data-live="bgWin">9</span> of <span data-live="bgCells">10</span> cells; its coverage is below 0.90 in <span data-live="bgCvLow">6</span> of the <span data-live="bgCells">10</span>, and repeated holdout's in <span data-live="bgRhLow">4</span>. Draws are 20 at every n. The shortfall column is the same quantity for both arms, since both train on 0.8n.</p></div></details>
+
+<h3>Distance from the ceiling: where the gain mostly disappears</h3>
+<p>The reduction above is in <em>estimator RMSE</em>, which is not the whole error. 5-fold CV fits each model on 0.8n &mdash; the same as an 80/20 holdout &mdash; so it leaves the shortfall from training on 0.8n where it was. The budget below holds that term fixed for all three estimators and varies only their noise.</p>
+<p class="sub">Band gap, ORB-v3. Bias is the shortfall from the full-corpus score at 0.8n; noise is the standard deviation of each estimate's error across draws; total is the two in quadrature.</p>
+<div class="scroll"><table>
+<thead><tr><th class="num">materials</th><th class="num">bias</th><th class="num">noise: 1 split</th><th class="num">5 splits</th><th class="num">CV</th><th class="num">total: 1 split</th><th class="num">5 splits</th><th class="num">CV</th></tr></thead>
+<tbody>
+<!--{{tbl_cv_budget}}-->
+</tbody></table></div>
+<p>At <span data-live="budN">2,000</span> materials CV cuts noise from <span data-live="budNoise1">0.020</span> to <span data-live="budNoiseCv">0.011</span> and total error from <span data-live="budTot1">0.125</span> to <span data-live="budTotCv">0.124</span> &mdash; about <span data-live="budTotPct">1</span>&nbsp;%. Added in quadrature against a bias of <span data-live="budBias">0.123</span>, a <span data-live="budNoisePct">43</span>&nbsp;% noise improvement disappears.</p>
+<p>Distance from the ceiling is set by training size. An 80/20 split has lower total error than an even one because the even one reduces training data; CV changes total error little because it leaves training size unchanged. Against repeated holdout, every adjustment other than training size acts on the smaller term in 85 of the 90 cells; the exceptions are energy above hull and magnetic density at 100 materials on both embeddings and energy above hull at 200 on UMA-S, where CV cuts total error by 21&ndash;59&nbsp;%.</p>
+<p class="why">This treats distance from the ceiling as error, which corresponds to reading a small-n score as a floor on the embedding's capability. Measured against the score achievable with the data in hand, the shortfall from the ceiling drops out, and what remains is the estimator RMSE and coverage above: CV is closer in <span data-live="cvWin2">84</span>&nbsp;% of cells, by a median <span data-live="cvGain2">16.8</span>&nbsp;% at n&nbsp;&le;&nbsp;1,000, and its interval covers <span data-live="cvCov">0.808</span> on average.</p>
+</div>
+
+<div class="limits needs-cv">
+<span class="tag">what this does not settle</span>
+<ul>
+<li>Every target runs at 20 draws except bulk modulus, whose pool supplies 12, 6 and 3 at 500, 1,000 and 2,000 materials, so its per-cell coverage is noisier.</li>
+<li>The comparison uses a frozen 20,000-material reference (6,426 on bulk modulus) and stops at 2,000 materials per dataset; larger datasets are not measured.</li>
+<li><strong>Cost is not the argument.</strong> Five folds is five fits, the same as five
+repeated splits. Cross-validation is rejected on its coverage and on the size of what it buys.</li>
+</ul>
+</div>
+<h2 id="conclusion">Conclusion</h2>
+<p>Three properties of a score follow from the split sizes, and the first two are independent:</p>
+<div class="scroll"><table>
+<thead><tr><th>property</th><th>threshold</th><th>measured from</th></tr></thead>
+<tbody>
+<tr><td><strong>spread</strong> &mdash; how far a re-split moves the score</td><td class="num">set by n_test</td><td>p10&ndash;p90 is 0.081 at 200 test materials, 0.033 at 1,000</td></tr>
+<tr><td><strong>shortfall</strong> &mdash; how far the score sits below the full corpus</td><td class="num">set by n_train</td><td><span data-live="gap5k">0.061</span> at 5,000 training materials; targets range <span data-live="gapEasy">0.017</span> to <span data-live="gapHard">0.128</span> there</td></tr>
+<tr><td><strong>gain over composition</strong> &mdash; what the embedding adds to the formula</td><td class="num">set by n_train and the target</td><td>resolvable from <span data-live="gainEarlyMaxN">500</span> training materials or fewer on <span data-live="gainEarlyCount">6</span> targets, from <span data-live="densityResolved">2,000</span> on density, never on magnetic density</td></tr>
+</tbody></table></div>
+
+<p>At a given dataset size the first two trade off against each other through the split, and neither is fixed by the dataset size alone &mdash; both are set by where the split is put. A score from 5,000 training and 200 test materials reproduces to about &plusmn;<span data-live="half200">0.040</span> and sits about <span data-live="gap5k">0.061</span> below the full-corpus value. Both hold simultaneously: the number moves by that much on a re-split and it is a lower bound.</p>
+
+<p>The second one has to be reported per target because it does not summarise. At 5,000 training materials formation energy is <span data-live="gapEasy">0.017</span> short and crystal system <span data-live="gapHard">0.128</span>, and the span widens with training data. No single number of materials stands in for it: the shortfall differs about five- to ninefold between the easiest and hardest target at every size.</p>
+
+<p>The third does not follow from the other two. Whether the embedding beats the formula
+alone is resolvable from <span data-live="gainEarlyMaxN">500</span> training materials or
+fewer on <span data-live="gainEarlyCount">6</span> targets, from
+<span data-live="densityResolved">2,000</span> on density, and never on magnetic density,
+where composition alone is ahead of ORB-v3 and, from 2,000 to 10,000 training materials, of UMA-S. A score can be settled
+and near its ceiling and still owe everything to the formula, so the gain over composition
+has to be reported beside the shortfall, per target, to say whether it does.</p>
+
+<p><strong>The regime that keeps total error within 0.005 of the minimum at every size from 500 materials up is an 80/20 split<span class="needs-cv">, repeated five times, with no cross-validation</span>.</strong><span class="needs-cv"> The t-interval over those five scores contains the truth in <span data-live="rhCov">0.851</span> of draws on average against a nominal 0.95, so its width understates the uncertainty.</span> The best fraction drifts toward training data as the dataset grows &mdash; 80/20 has the lowest median total error at 500 and 5,000 materials, and 90/10 edges it by 0.001&ndash;0.004 at the other sizes from 1,000 up &mdash; but from 1,000 materials up 90/10, 80/20 and 70/30 sit within 0.01 of each other, so an 80/20 split, with a wider test fraction when a dataset is small, covers the measured range.</p>
+
+<p><strong>The floor is 5,000 training and 200 test materials &mdash; at 80/20 the training floor takes 6,250 materials in total, which puts 1,250 in the test set.</strong> No size between 5,000 and 20,000 is a natural cut, so the floor is set by how much data it is reasonable to demand.</p>
+
+<h2>References</h2>
+<ol class="refs">
+<li><b>Bates, S., Hastie, T., Tibshirani, R.</b> (2023). Cross-validation: what does it
+estimate and how well does it do it? <em>Journal of the American Statistical
+Association</em>. arXiv:2104.00673.</li>
+<li><b>Varoquaux, G.</b> (2018). Cross-validation failure: small sample sizes lead to
+large error bars. <em>NeuroImage</em> 180, 68&ndash;77. arXiv:1706.07581.</li>
+<li><b>Bengio, Y., Grandvalet, Y.</b> (2004). No unbiased estimator of the variance of
+k-fold cross-validation. <em>Journal of Machine Learning Research</em> 5,
+1089&ndash;1105.</li>
+<li><b>Xu, P., Ji, X., Li, M., Lu, W.</b> (2023). Small data machine learning in materials
+science. <em>npj Computational Materials</em> 9, 42.</li>
+<li><b>Ward, L., Agrawal, A., Choudhary, A., Wolverton, C.</b> (2016). A general-purpose
+machine learning framework for predicting properties of inorganic materials. <em>npj
+Computational Materials</em> 2, 16028. <em>The Magpie feature set.</em></li>
+<li><b>Stepurko, N., Laulainen, J.</b> (2026). Out-of-training properties in frozen
+interatomic potential embeddings are decodable and ordered by physical scale. Accepted,
+AI4Sci and AI4Mat workshops, NeurIPS 2026; to be released in November 2026. <em>Source of the full-corpus scores used here as
+ceilings.</em></li>
+<li><b>Hastie, T., Tibshirani, R., Friedman, J.</b> (2009). <em>The Elements of
+Statistical Learning</em>, 2nd ed., ch.&nbsp;7, Model assessment and selection.
+Springer.</li>
+<li><b>Cortes, C., Jackel, L. D., Solla, S. A., Vapnik, V., Denker, J. S.</b> (1994).
+Learning curves: asymptotic values and rate of convergence. <em>Advances in Neural
+Information Processing Systems</em> 6, 327&ndash;334.</li>
+</ol>
+
+<footer>
+ORB-v3 and UMA-S, node backbone &middot; 9 targets &middot; XGBoost
+&middot; 30 draws per training-axis point up to 2,000 and 6 to 10 above (fewer on bulk modulus), 200 per test-axis
+point and 1 on the full 20,000-material test set<span class="needs-cv"> &middot; cross-validation 20 draws per target and size (fewer on bulk modulus)</span>
+</footer>
+</div>
+<script>
+var DATA = <!--{{data}}-->;
+// ---- shared helpers -------------------------------------------------------
+var SD_PER_SPREAD = 2.5631;                 // p10-p90 width of a standard normal
+var $ = function(id){ return document.getElementById(id); };
+var fmt = function(n){ return n.toLocaleString("en-US"); };
+var SIX = DATA.targets, LAB = DATA.labels;
+
+function rows(kind, emb, target){
+  return DATA[kind][emb].filter(function(r){ return r.target === target && (kind !== "test" || r.spread !== null); })
+                        .sort(function(a,b){ return a.n - b.n; });
+}
+function ceil_(emb, target){ return DATA.ceilings[emb][target]; }
+
+// Curves are near-linear in log n, which is how the analysis reads them throughout.
+function interp(pts, key, x){
+  if (!pts.length) return null;
+  if (x <= pts[0].n) return pts[0][key];
+  if (x >= pts[pts.length-1].n) return pts[pts.length-1][key];
+  for (var i = 1; i < pts.length; i++){
+    if (x <= pts[i].n){
+      var a = pts[i-1], b = pts[i],
+          f = (Math.log(x)-Math.log(a.n)) / (Math.log(b.n)-Math.log(a.n));
+      return a[key] + f*(b[key]-a[key]);
+    }
+  }
+  return pts[pts.length-1][key];
+}
+// The spread curve is measured on the 20,000-material test-axis probe and scaled as though that probe were at its ceiling; a probe scoring lower scatters more.
+function errors(emb, target, nTrain, nTest){
+  var tr = rows("train", emb, target), te = rows("test", emb, target),
+      c = ceil_(emb, target),
+      score = interp(tr, "median", nTrain),
+      shortfall = Math.max(0, c - score),
+      // As measured on the test axis. The 0.05 convention used throughout this page is
+      // defined on this quantity, so it is what a verdict must be judged against.
+      measured = interp(te, "spread", nTest),
+      // For the error budget only: a probe scoring below its ceiling scatters more, so
+      // the measured spread is scaled up before being combined with the shortfall.
+      rescaled = measured * (1-score) / Math.max(1e-9, 1-c),
+      sd = rescaled / SD_PER_SPREAD;
+  // Outside the measured grids there is nothing to interpolate: blank, as in split_fraction.csv.
+  if (nTrain > tr[tr.length-1].n || nTest > te[te.length-1].n)
+    return {score:NaN, shortfall:NaN, spread:NaN, rescaled:NaN, sd:NaN, total:NaN, ceiling:c};
+  return {score:score, shortfall:shortfall, spread:measured, rescaled:rescaled, sd:sd,
+          total:Math.hypot(shortfall, sd), ceiling:c};
+}
+function median(a){
+  var s = a.slice().sort(function(x,y){ return x-y; }), m = s.length>>1;
+  return s.length % 2 ? s[m] : (s[m-1]+s[m])/2;
+}
+function setLive(key, text){
+  Array.prototype.forEach.call(document.querySelectorAll('[data-live="'+key+'"]'),
+    function(el){ el.textContent = text; });
+}
+// Cross-validation: until DATA.cv holds rows for both embeddings, hide every CV result and show the pending note.
+var CV_READY = ["orb","uma"].every(function(k){ return ((DATA.cv || {})[k] || []).length > 0; });
+(function cvGate(){
+  var has = CV_READY;
+  Array.prototype.forEach.call(document.querySelectorAll(has ? ".cv-pending" : ".needs-cv"),
+    function(el){ el.style.display = "none"; });
+})();
+var REDUCED = !!(window.matchMedia &&
+                 window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+
+// ---- numbers quoted in prose, computed from DATA ---------------------------
+(function liveNumbers(){
+  var CVD = DATA.cv || {};
+  var cv = (CVD.orb || []).concat(CVD.uma || []);
+  if (CV_READY){
+  // A blank field (no usable interval or estimate in that cell) is left out, never counted as 0.
+  var vals = function(rs, k){ return rs.map(function(r){ return r[k]; }).filter(function(v){ return v != null; }); };
+  var avg = function(a){ return a.length ? (a.reduce(function(s,v){ return s+v; },0)/a.length).toFixed(3) : "–"; };
+  var red = vals(cv, "red");
+  var small = vals(cv.filter(function(r){ return r.n <= 1000; }), "red");
+  var win = 100 * red.filter(function(v){ return v > 0; }).length / red.length;
+  ["cvWin","cvWin2","cvWin3","cvWin4"].forEach(function(k){
+    setLive(k, red.length ? win.toFixed(0)+(k==="cvWin3"?" %":"") : "–"); });
+  ["cvGain","cvGain2","cvGain3","cvGain4","cvGain5","cvGain6"].forEach(function(k){
+    setLive(k, small.length ? (median(small)*100).toFixed(1)+(k==="cvGain3"?" %":"") : "–"); });
+  setLive("cvCov",  avg(vals(cv, "cv_cov")));
+  setLive("cvCov3", avg(vals(cv, "cv_cov")));
+  setLive("rhCov",  avg(vals(cv, "rh_cov")));
+  setLive("rhCov3", avg(vals(cv, "rh_cov")));
+  setLive("hoCov",  avg(vals(cv, "ho_cov")));
+  var low = function(k){ return String(vals(cv, k).filter(function(v){ return v < 0.90; }).length); };
+  setLive("cvLow",  low("cv_cov"));
+  setLive("cvLow3", low("cv_cov"));
+  setLive("rhLow",  low("rh_cov"));
+  setLive("hoLow",  low("ho_cov"));
+  setLive("cvCells",  String(cv.length));
+  setLive("cvCells3", String(cv.length));
+  // Band gap, both embeddings: the cells of the full-data table.
+  var bg = cv.filter(function(r){ return r.target === "band_gap"; });
+  setLive("bgCells", String(bg.length));
+  setLive("bgWin",   String(vals(bg, "red").filter(function(v){ return v > 0; }).length));
+  setLive("bgCvLow", String(vals(bg, "cv_cov").filter(function(v){ return v < 0.90; }).length));
+  setLive("bgRhLow", String(vals(bg, "rh_cov").filter(function(v){ return v < 0.90; }).length));
+  // Error budget at the largest dataset size, band gap, ORB-v3: bias is the shortfall at 0.8n.
+  var bo = (CVD.orb || []).filter(function(r){ return r.target === "band_gap" && r.ho_sd != null && r.cv_sd != null; })
+                          .sort(function(a,b){ return a.n - b.n; }).pop();
+  if (bo){
+    var bias = Math.max(0, ceil_("orb","band_gap") - interp(rows("train","orb","band_gap"), "median", 0.8*bo.n)),
+        t1 = Math.hypot(bias, bo.ho_sd), tc = Math.hypot(bias, bo.cv_sd);
+    setLive("budN", fmt(bo.n)); setLive("budBias", bias.toFixed(3));
+    setLive("budNoise1", bo.ho_sd.toFixed(3)); setLive("budNoiseCv", bo.cv_sd.toFixed(3));
+    setLive("budTot1", t1.toFixed(3)); setLive("budTotCv", tc.toFixed(3));
+    setLive("budTotPct", (100*(1-tc/t1)).toFixed(0));
+    setLive("budNoisePct", (100*(1-bo.cv_sd/bo.ho_sd)).toFixed(0));
+  } else ["budN","budBias","budNoise1","budNoiseCv","budTot1","budTotCv","budTotPct","budNoisePct"]
+           .forEach(function(k){ setLive(k, "–"); });
+  }
+
+  // Per target: per-target shortfall at 5,000, and how the span moves with more data.
+  var five = SIX.filter(function(t){ return t !== "bulk_modulus"; });
+  function meanGap(t, n){
+    var v = ["orb","uma"].map(function(e){
+      var r = rows("train", e, t).filter(function(x){ return x.n === n; })[0];
+      return r ? r.gap : null; }).filter(function(x){ return x !== null; });
+    return v.length ? v.reduce(function(a,b){ return a+b; },0)/v.length : null;
+  }
+  var g5 = five.map(function(t){ return meanGap(t,5000); }).filter(Boolean);
+  setLive("gapEasy", Math.min.apply(null,g5).toFixed(3));
+  setLive("gapHard", Math.max.apply(null,g5).toFixed(3));
+  [5000,7000,10000,20000].forEach(function(n){
+    var g = five.map(function(t){ return meanGap(t,n); }).filter(Boolean);
+    var span = Math.max.apply(null,g)/Math.min.apply(null,g);
+    setLive("span-"+n, span.toFixed(1)+"×");
+    if (n === 5000) setLive("span5k", span.toFixed(1));
+  });
+  // Largest ORB-UMA disagreement at the floor size.
+  var dis = SIX.map(function(t){
+    var a = rows("train","orb",t).filter(function(x){ return x.n===5000; })[0],
+        b = rows("train","uma",t).filter(function(x){ return x.n===5000; })[0];
+    return (a && b) ? Math.abs(a.gap-b.gap) : 0; });
+  setLive("embAgree", Math.max.apply(null,dis).toFixed(3));
+
+  // Test size: how far the spread falls across the test axis.
+  var sp = function(n){
+    return median(SIX.map(function(t){
+      var r = rows("test","orb",t).filter(function(x){ return x.n===n; })[0];
+      return r ? r.spread : null; }).filter(function(x){ return x !== null; }));
+  };
+  [200, 500, 1000].forEach(function(n){ setLive("half"+n, (sp(n)/2).toFixed(3)); });
+  var g5all = five.map(function(t){ return meanGap(t,5000); }).filter(Boolean);
+  setLive("gap5k", (g5all.reduce(function(a,b){ return a+b; },0)/g5all.length).toFixed(3));
+  setLive("sp20", sp(20).toFixed(3));
+  setLive("sp5000", sp(5000).toFixed(3));
+  setLive("spRatio", (sp(20)/sp(5000)).toFixed(0));
+})();
+
+// Composition: the embedding's gain over composition, on paired draws.
+(function gainNumbers(){
+  if (!DATA.gain) return;
+  function g(e, t){ return DATA.gain[e].filter(function(r){ return r.target === t; })
+                                     .sort(function(a,b){ return a.n - b.n; }); }
+  // smallest n from which p10 > 0 holds there and at every larger measured size
+  function firstAhead(rs){
+    for (var i = 0; i < rs.length; i++)
+      if (rs.slice(i).every(function(r){ return r.p10 > 0; })) return rs[i].n;
+    return null;
+  }
+  var early = SIX.filter(function(t){
+    return ["orb","uma"].every(function(e){ var f = firstAhead(g(e,t)); return f !== null && f <= 500; }); });
+  setLive("gainEarlyCount", String(early.length));
+  setLive("gainEarlyMaxN", fmt(Math.max.apply(null, early.map(function(t){
+    return Math.max(firstAhead(g("orb",t)), firstAhead(g("uma",t))); }))));
+  var at20k = [];
+  early.forEach(function(t){ ["orb","uma"].forEach(function(e){
+    var r = g(e,t).filter(function(x){ return x.n === 20000; })[0]; if (r) at20k.push(r.med); }); });
+  setLive("gain20kLo", Math.min.apply(null, at20k).toFixed(3));
+  setLive("gain20kHi", Math.max.apply(null, at20k).toFixed(3));
+  var dens = g("orb","density").map(function(r){ return r.n; }).filter(function(n){
+    return ["orb","uma"].every(function(e){
+      var r = g(e,"density").filter(function(x){ return x.n === n; })[0]; return r && r.p90 < 0; }); });
+  setLive("compDensityTo", fmt(Math.max.apply(null, dens)));
+  setLive("densityResolved", fmt(Math.max(firstAhead(g("orb","density")), firstAhead(g("uma","density")))));
+  var behind = g("orb","mag_density").filter(function(r){ return r.p90 < 0; });
+  setLive("magOrbBehindFrom", fmt(behind.length ? behind[0].n : 0));
+  var m5 = rows("train","orb","mag_density").filter(function(r){ return r.n === 5000; })[0];
+  if (m5) setLive("magOrbHalf5k", (m5.spread/2).toFixed(3));
+  // Test size: Magpie's spread against ORB's at 200 test materials, formation energy.
+  function sp200(e){ var r = rows("test", e, "formation_energy_per_atom").filter(function(x){ return x.n === 200; })[0]; return r ? r.spread : null; }
+  if (sp200("magpie") !== null){ setLive("magSp200", sp200("magpie").toFixed(3)); setLive("orbSp200", sp200("orb").toFixed(3)); }
+})();
+// ---- element 1: what would my score mean? ----------------------------------
+(function(){
+  var STABLE = 0.05;                       // p10-p90 spread below which one draw is representative
+  var emb = "orb", tgt = "band_gap";
+
+  var sel = $("tTarget");
+  SIX.forEach(function(t){
+    var o = document.createElement("option");
+    o.value = t; o.textContent = LAB[t]; if (t === tgt) o.selected = true;
+    sel.appendChild(o);
+  });
+
+  function grid(){
+    var tr = rows("train", emb, tgt), te = rows("test", emb, tgt);
+    return {trLo:tr[0].n, trHi:tr[tr.length-1].n, teLo:te[0].n, teHi:te[te.length-1].n};
+  }
+  function pos2n(p, lo, hi){
+    var v = Math.exp(Math.log(lo) + (p/1000)*(Math.log(hi)-Math.log(lo))),
+        m = Math.pow(10, Math.floor(Math.log10(v)) - 1);
+    return Math.round(v/m)*m;
+  }
+  function n2pos(n, lo, hi){
+    return Math.round(1000*(Math.log(n)-Math.log(lo))/(Math.log(hi)-Math.log(lo)));
+  }
+  function current(){
+    var g = grid();
+    return {tr:pos2n(+$("tTrain").value, g.trLo, g.trHi),
+            te:pos2n(+$("tTest").value,  g.teLo, g.teHi)};
+  }
+
+  function render(){
+    var g = grid(), n = current(), e = errors(emb, tgt, n.tr, n.te);
+    $("oTrain").textContent = fmt(n.tr);
+    $("oTest").textContent  = fmt(n.te);
+    $("vScore").textContent  = e.score.toFixed(3);
+    $("vShort").textContent  = e.shortfall.toFixed(3);
+    $("vSpread").textContent = e.spread.toFixed(3);
+    $("vTotal").textContent  = e.total.toFixed(3);
+
+    // The two terms add in quadrature, so the squared shares are what actually combine.
+    var s2 = e.shortfall*e.shortfall, p2 = e.sd*e.sd, tot = s2+p2 || 1;
+    var sPct = 100*s2/tot;
+    $("segS").style.width = sPct.toFixed(1)+"%";
+    $("segP").style.width = (100-sPct).toFixed(1)+"%";
+
+    var unit = DATA.metric[tgt];
+    // Two independent gradients: how far the score moves on a re-split, and how far it
+    // sits below the full corpus. Each gets a band, because the quantities are
+    // continuous.
+    var move = e.spread >= 2*STABLE ? "unsettled"
+             : e.spread >= STABLE   ? "borderline"
+             : e.spread >= STABLE/2 ? "fairly settled" : "settled";
+    var gap  = e.shortfall >= 0.10 ? "well below"
+             : e.shortfall >= 0.05 ? "some way below"
+             : e.shortfall >= 0.02 ? "slightly below" : "close to";
+    var half = (e.spread/2).toFixed(3);
+    var lead = "A re-split moves it by about <strong>±" + half + " " + unit + "</strong>.";
+    var tail = {
+      "well below":     " It sits <strong>" + e.shortfall.toFixed(3) + " " + unit +
+                        "</strong> below the full corpus, so it is a lower bound.",
+      "some way below": " It sits " + e.shortfall.toFixed(3) + " " + unit +
+                        " below the full corpus, so it understates the features.",
+      "slightly below": " It is slightly under the full corpus, by " +
+                        e.shortfall.toFixed(3) + " " + unit + ".",
+      "close to":       " It is within " + e.shortfall.toFixed(3) + " " + unit +
+                        " of what these features reach on the full corpus."
+    }[gap];
+    var w = $("tWhy");
+    w.className = "try-why " + (move === "unsettled" ? "warn" : move === "borderline" ? "near" : "");
+    w.innerHTML = lead + tail;
+
+    // Where the score sits between zero and this embedding's full-corpus value.
+    var frac = Math.max(0, Math.min(1, e.score / e.ceiling));
+    $("ceilFill").style.width = (frac*100).toFixed(1)+"%";
+    $("ceilCap").textContent = e.score.toFixed(3) + " of " + e.ceiling.toFixed(3) +
+      " reached (" + unit + ")";
+  }
+
+  function setBounds(keep){
+    var g = grid();
+    $("sTrainLo").textContent = fmt(g.trLo); $("sTrainHi").textContent = fmt(g.trHi);
+    $("sTestLo").textContent  = fmt(g.teLo); $("sTestHi").textContent  = fmt(g.teHi);
+    // Bulk modulus stops short: its corpus cannot supply 7,000 training materials alongside a disjoint reference.
+    $("tRange").textContent = (g.trHi < 20000)
+      ? "measured to " + fmt(g.trHi) + " training materials for this target, not 20,000"
+      : "";
+    if (keep){
+      $("tTrain").value = n2pos(Math.min(Math.max(keep.tr, g.trLo), g.trHi), g.trLo, g.trHi);
+      $("tTest").value  = n2pos(Math.min(Math.max(keep.te, g.teLo), g.teHi), g.teLo, g.teHi);
+    }
+  }
+
+  sel.addEventListener("change", function(){
+    var n = current(); tgt = sel.value; setBounds(n); render();
+  });
+  Array.prototype.forEach.call(document.querySelectorAll(".try-seg-b"), function(btn){
+    btn.addEventListener("click", function(){
+      var n = current();
+      emb = btn.dataset.emb;
+      Array.prototype.forEach.call(document.querySelectorAll(".try-seg-b"), function(o){
+        var on = o === btn;
+        o.classList.toggle("is-on", on);
+        o.setAttribute("aria-checked", on ? "true" : "false");
+      });
+      $("try").style.setProperty("--accent", emb === "orb" ? "var(--orb)" : emb === "uma" ? "var(--uma)" : "var(--mag)");
+      setBounds(n); render();
+    });
+  });
+  $("tTrain").addEventListener("input", render);
+  $("tTest").addEventListener("input", render);
+
+  $("try").style.setProperty("--accent", "var(--orb)");
+  setBounds({tr:5000, te:200});
+  render();
+})();
+(function(){
+  var win = 0, cells = 0;
+  SIX.forEach(function(t){ ["orb","uma"].forEach(function(e){
+    var a = errors(e, t, 400, 100).total, b = errors(e, t, 250, 250).total;
+    if (isFinite(a) && isFinite(b)){ cells++; if (a < b) win++; }
+  }); });
+  setLive("win500", String(win)); setLive("cells", String(cells));
+})();
+
+// ---- element 2: split-fraction explorer ------------------------------------
+(function(){
+  var FR = [0.1,0.2,0.3,0.4,0.5], N = 1000, T = "band_gap";
+  var EMB = [{k:"orb", label:"ORB-v3", col:"var(--orb)"},
+             {k:"uma", label:"UMA-S", col:"var(--uma)"}];
+  var W = 700, H = 276, X0 = 54, X1 = 664, Y0 = 20, Y1 = 200;
+
+  var sel = $("sfxT");
+  SIX.forEach(function(t){
+    var o = document.createElement("option");
+    o.value = t; o.textContent = LAB[t]; if (t === T) o.selected = true;
+    sel.appendChild(o);
+  });
+
+  function series(embKey){
+    return FR.map(function(f, i){
+      var e = errors(embKey, T, N*(1-f), N*f);
+      return {i:i, f:f, total:e.total, shortfall:e.shortfall, sd:e.sd,
+              nTr:Math.round(N*(1-f)), nTe:Math.round(N*f)};
+    }).filter(function(d){ return isFinite(d.total); });
+  }
+  function draw(){
+    var all = EMB.map(function(m){ return {m:m, s:series(m.k)}; });
+    var hi = Math.max.apply(null, all.map(function(a){
+      return Math.max.apply(null, a.s.map(function(d){ return d.total; })); })) * 1.30;
+    var x = function(i){ return X0 + i*(X1-X0)/(FR.length-1); };
+    var y = function(v){ return Y1 - (v/hi)*(Y1-Y0); };
+    var o = [];
+    [0,0.25,0.5,0.75,1].forEach(function(g){
+      var yy = Y1 - g*(Y1-Y0);
+      o.push('<line x1="'+X0+'" y1="'+yy.toFixed(1)+'" x2="'+X1+'" y2="'+yy.toFixed(1)+
+             '" style="stroke:var(--rule);stroke-width:1"/>');
+      o.push('<text x="'+(X0-8)+'" y="'+(yy+3.5).toFixed(1)+'" text-anchor="end" font-size="9" '+
+             'fill="var(--muted)" font-family="monospace">'+(g*hi).toFixed(2)+'</text>');
+    });
+    all.forEach(function(a){
+      var s = a.s, col = a.m.col;
+      var best = s.length === FR.length ? s.reduce(function(p,q){ return q.total < p.total ? q : p; }) : null;
+      // shortfall alone, faint: shows how much of each total is the training term
+      o.push('<path d="'+s.map(function(d,i){
+        return (i?"L":"M")+x(d.i).toFixed(1)+" "+y(d.shortfall).toFixed(1); }).join(" ")+
+        '" style="fill:none;stroke:'+col+';stroke-width:1;stroke-dasharray:4 3;opacity:.45"/>');
+      o.push('<path d="'+s.map(function(d,i){
+        return (i?"L":"M")+x(d.i).toFixed(1)+" "+y(d.total).toFixed(1); }).join(" ")+
+        '" style="fill:none;stroke:'+col+';stroke-width:2"/>');
+      s.forEach(function(d){
+        var isBest = d === best;
+        o.push('<circle cx="'+x(d.i).toFixed(1)+'" cy="'+y(d.total).toFixed(1)+'" r="'+
+               (isBest?5:3.2)+'" style="fill:'+col+
+               (isBest?';stroke:var(--panel);stroke-width:2':'')+'"/>');
+        if (isBest)
+          o.push('<text x="'+x(d.i).toFixed(1)+'" y="'+(y(d.total)-11).toFixed(1)+
+                 '" text-anchor="middle" font-size="9.5" fill="'+col+
+                 '" font-family="monospace">'+d.total.toFixed(3)+'</text>');
+      });
+    });
+    FR.forEach(function(f,i){
+      o.push('<text x="'+x(i).toFixed(1)+'" y="'+(Y1+16)+'" text-anchor="middle" font-size="10" '+
+             'fill="var(--ink)">'+Math.round((1-f)*100)+"/"+Math.round(f*100)+'</text>');
+      o.push('<text x="'+x(i).toFixed(1)+'" y="'+(Y1+29)+'" text-anchor="middle" font-size="8.5" '+
+             'fill="var(--muted)" font-family="monospace">'+
+             fmt(Math.round(N*(1-f)))+" / "+fmt(Math.round(N*f))+'</text>');
+    });
+    o.push('<line x1="'+X0+'" y1="'+Y1+'" x2="'+X1+'" y2="'+Y1+
+           '" style="stroke:var(--axis);stroke-width:1"/>');
+    EMB.forEach(function(m, i){
+      var lx = X0 + i*140;
+      o.push('<line x1="'+lx+'" y1="'+(H-10)+'" x2="'+(lx+16)+'" y2="'+(H-10)+
+             '" style="stroke:'+m.col+';stroke-width:2"/>');
+      o.push('<text x="'+(lx+22)+'" y="'+(H-6.5)+'" font-size="9.5" fill="var(--ink)">'+
+             m.label+'</text>');
+    });
+    o.push('<text x="'+(X0+300)+'" y="'+(H-6.5)+'" font-size="9.5" fill="var(--muted)">'+
+           'solid: total error &#183; dashed: shortfall alone</text>');
+    o.push('<text x="'+((X0+X1)/2).toFixed(0)+'" y="'+(Y1+44)+'" text-anchor="middle" font-size="9.5" '+
+           'fill="var(--muted)">train / test split &#183; number of training / test materials</text>');
+    o.push('<text transform="rotate(-90)" x="'+(-(Y0+Y1)/2).toFixed(0)+'" y="14" text-anchor="middle" '+
+           'font-size="9.5" fill="var(--muted)">total error</text>');
+    $("sfxChart").innerHTML = o.join("");
+
+    var cap = all.map(function(a){
+      var even = a.s[a.s.length-1];
+      if (a.s.length < FR.length)
+        return "<b>" + a.m.label + "</b> even split <b>" + even.total.toFixed(3) +
+               "</b>, the only fraction inside the measured training curve";
+      var best = a.s.reduce(function(p,q){ return q.total < p.total ? q : p; });
+      return "<b>" + a.m.label + "</b> " + Math.round((1-best.f)*100) + "/" +
+             Math.round(best.f*100) + " at <b>" + best.total.toFixed(3) +
+             "</b>, even split <b>" + even.total.toFixed(3) + "</b>";
+    }).join("; ");
+    $("sfxCap").innerHTML = "At " + fmt(N) + " materials on " + LAB[T] + " &mdash; " + cap + ".";
+  }
+  function bind(id, attr, set){
+    $(id).addEventListener("click", function(ev){
+      var b = ev.target.closest("button"); if (!b) return;
+      set(b.dataset[attr]);
+      Array.prototype.forEach.call(this.querySelectorAll("button"), function(o){
+        var on = o === b;
+        o.classList.toggle("on", on);
+        o.setAttribute("aria-checked", on ? "true" : "false");
+      });
+      draw();
+    });
+  }
+  bind("sfxN", "n", function(v){ N = +v; });
+  sel.addEventListener("change", function(){ T = sel.value; draw(); });
+  draw();
+})();
+// ---- element 3: cross-validation cell explorer -----------------------------
+(function(){
+  var E = "orb", M = "red";
+  var W = 700, H = 420, X0 = 168, X1 = 648, Y0 = 26, Y1 = 384;
+  var BAR = 0.30, BAND = [0.90, 0.98], NOMINAL = 0.95;
+
+  function cells(){ return (DATA.cv || {})[E] || []; }
+  function targets(){
+    var seen = {}, out = [];
+    cells().forEach(function(r){ if (!seen[r.target]){ seen[r.target] = 1; out.push(r.target); } });
+    return SIX.filter(function(t){ return seen[t]; }).concat(out.filter(function(t){ return SIX.indexOf(t) < 0; }).sort());
+  }
+  function sizes(){
+    var s = {}; cells().forEach(function(r){ s[r.n] = 1; });
+    return Object.keys(s).map(Number).sort(function(a,b){ return a-b; });
+  }
+  function pretty(t){ return LAB[t] || t.replace(/_/g, " "); }
+  function f(v, k){ return v == null ? "–" : v.toFixed(k); }
+
+  function draw(){
+    var T = targets(), NS = sizes(), o = [];
+    if (!T.length){ $("cvxChart").innerHTML = ""; $("cvxCap").innerHTML = "Cross-validation results not yet measured."; return; }
+    var rowH = (Y1-Y0)/T.length;
+    var isCov = M === "cov";
+    var lo = isCov ? -0.02 : -0.4, hi = isCov ? 1.02 : 0.9;
+    var x = function(v){ return X0 + (v-lo)/(hi-lo)*(X1-X0); };
+
+    if (isCov){
+      o.push('<rect x="'+x(BAND[0]).toFixed(1)+'" y="'+Y0+'" width="'+
+             (x(BAND[1])-x(BAND[0])).toFixed(1)+'" height="'+(Y1-Y0).toFixed(1)+
+             '" style="fill:var(--band)"/>');
+      o.push('<line x1="'+x(NOMINAL).toFixed(1)+'" y1="'+Y0+'" x2="'+x(NOMINAL).toFixed(1)+
+             '" y2="'+Y1+'" style="stroke:var(--ink);stroke-width:1;stroke-dasharray:4 3"/>');
+    } else {
+      o.push('<line x1="'+x(0).toFixed(1)+'" y1="'+Y0+'" x2="'+x(0).toFixed(1)+'" y2="'+Y1+
+             '" style="stroke:var(--ink);stroke-width:1"/>');
+      o.push('<line x1="'+x(0.30).toFixed(1)+'" y1="'+Y0+'" x2="'+x(0.30).toFixed(1)+'" y2="'+Y1+
+             '" style="stroke:var(--accent3);stroke-width:1.2;stroke-dasharray:5 3"/>');
+      o.push('<text x="'+(x(0.30)+5).toFixed(1)+'" y="'+(Y0+10)+'" font-size="9.5" '+
+             'fill="var(--accent3)">30 % bar</text>');
+    }
+    var ticks = isCov ? [0,0.25,0.50,0.75,1.00] : [-0.4,-0.2,0,0.2,0.4,0.6,0.8];
+    ticks.forEach(function(v){
+      o.push('<text x="'+x(v).toFixed(1)+'" y="'+(Y1+16)+'" text-anchor="middle" font-size="9" '+
+             'fill="var(--muted)" font-family="monospace">'+
+             (isCov ? v.toFixed(2) : (v*100).toFixed(0)+"%")+'</text>');
+    });
+
+    T.forEach(function(t, i){
+      var y0 = Y0 + i*rowH;
+      if (i % 2 === 0)
+        o.push('<rect x="'+X0+'" y="'+y0.toFixed(1)+'" width="'+(X1-X0)+'" height="'+
+               rowH.toFixed(1)+'" style="fill:var(--band);opacity:.45"/>');
+      o.push('<text x="'+(X0-10)+'" y="'+(y0+rowH/2).toFixed(1)+'" text-anchor="end" '+
+             'font-size="10" fill="var(--ink)" dominant-baseline="middle">'+pretty(t)+'</text>');
+      NS.forEach(function(n, j){
+        var r = cells().filter(function(c){ return c.target===t && c.n===n; })[0];
+        if (!r) return;
+        var cy = y0 + rowH*(j+0.5)/NS.length;
+        var tip = pretty(t)+"  n="+fmt(n)+"  draws "+r.draws+
+                  "\nRMSE reduction  "+(r.red == null ? "–" : (r.red*100).toFixed(1)+" %")+
+                  "\ncoverage  CV "+f(r.cv_cov,2)+"   repeated holdout "+f(r.rh_cov,2)+
+                  "\nRMSE  CV "+f(r.cv_rmse,4)+"   repeated holdout "+f(r.rh_rmse,4);
+        if (isCov){
+          [["rh_cov","var(--muted)"],["cv_cov","var(--accent3)"]].forEach(function(p){
+            if (r[p[0]] == null) return;
+            o.push('<circle cx="'+x(r[p[0]]).toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="3" '+
+                   'style="fill:'+p[1]+'" data-tip="'+tip.replace(/"/g,"&quot;")+'"/>');
+          });
+        } else {
+          if (r.red == null) return;
+          var beats = r.red >= 0.30;
+          o.push('<line x1="'+x(0).toFixed(1)+'" y1="'+cy.toFixed(1)+'" x2="'+
+                 x(r.red).toFixed(1)+'" y2="'+cy.toFixed(1)+
+                 '" style="stroke:var(--rule);stroke-width:1"/>');
+          o.push('<circle cx="'+x(r.red).toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="3.4" style="fill:'+
+                 (beats ? "var(--accent3)" : "var(--muted)")+';fill-opacity:'+
+                 (beats ? 1 : 0.55)+'" data-tip="'+tip.replace(/"/g,"&quot;")+'"/>');
+        }
+      });
+    });
+    o.push('<line x1="'+X0+'" y1="'+Y1+'" x2="'+X1+'" y2="'+Y1+
+           '" style="stroke:var(--axis);stroke-width:1"/>');
+    o.push('<text x="'+X0+'" y="'+(H-6)+'" font-size="9.5" fill="var(--muted)">'+
+           (isCov ? 'x: coverage of the 95 % interval &#183; filled: cross-validation &#183; grey: repeated holdout &#183; shaded: the [0.90, 0.98] band, dashed: nominal 0.95'
+                  : 'x: RMSE reduction vs repeated holdout &#183; one dot per dataset size, '+fmt(NS[0])+' at the top of each row to '+fmt(NS[NS.length-1])+' at the bottom &#183; filled: clears the 30 % bar')+
+           '</text>');
+    o.push('<text transform="rotate(-90)" x="'+(-(Y0+Y1)/2).toFixed(0)+'" y="12" text-anchor="middle" '+
+           'font-size="9.5" fill="var(--muted)">target</text>');
+    $("cvxChart").innerHTML = o.join("");
+
+    var c = cells().filter(function(r){ return r.red != null; }), win = c.filter(function(r){ return r.red>0; }).length;
+    var over = c.filter(function(r){ return r.red>=0.30; }).length;
+    $("cvxCap").innerHTML = ({orb:"ORB-v3", uma:"UMA-S"})[E]+": cross-validation is closer in <b>"+win+
+      "</b> of <b>"+c.length+"</b> cells, and clears the 30&nbsp;% bar in <b>"+over+
+      "</b>; its coverage is below 0.90 in <b>"+cells().filter(function(r){ return r.cv_cov != null && r.cv_cov < 0.90; }).length+
+      "</b>. Hover any point for its numbers.";
+  }
+
+  var tip = $("cvxTip");
+  $("cvxChart").addEventListener("mouseover", function(ev){
+    var d = ev.target.getAttribute && ev.target.getAttribute("data-tip");
+    if (!d) return;
+    tip.textContent = d; tip.style.opacity = "1";
+    var box = this.getBoundingClientRect(), r = ev.target.getBoundingClientRect();
+    tip.style.left = Math.min(box.width-190, r.left-box.left+12)+"px";
+    tip.style.top  = (r.top-box.top-8)+"px";
+  });
+  $("cvxChart").addEventListener("mouseout", function(){ tip.style.opacity = "0"; });
+
+  function bind(id, attr, set){
+    $(id).addEventListener("click", function(ev){
+      var b = ev.target.closest("button"); if (!b) return;
+      set(b.dataset[attr]);
+      Array.prototype.forEach.call(this.querySelectorAll("button"), function(o){
+        var on = o === b;
+        o.classList.toggle("on", on);
+        o.setAttribute("aria-checked", on ? "true" : "false");
+      });
+      draw();
+    });
+  }
+  bind("cvxE", "e", function(v){ E = v;
+    document.querySelector(".cvx").style.setProperty("--accent3",
+      E === "orb" ? "var(--orb)" : "var(--uma)"); });
+  bind("cvxM", "m", function(v){ M = v; });
+  document.querySelector(".cvx").style.setProperty("--accent3", "var(--orb)");
+  draw();
+})();
+
+// ---- element 4: score / shortfall toggle on the small multiples -------------
+(function(){
+  var score = $("figScore"), gap = $("figGap");
+  if (!score || !gap) return;
+  function show(which){
+    score.hidden = which !== "score";
+    gap.hidden = which === "score";
+    [["vScoreBtn","score"],["vGapBtn","gap"]].forEach(function(p){
+      var b = $(p[0]), on = p[1] === which;
+      b.classList.toggle("on", on);
+      b.setAttribute("aria-checked", on ? "true" : "false");
+    });
+  }
+  $("vScoreBtn").addEventListener("click", function(){ show("score"); });
+  $("vGapBtn").addEventListener("click", function(){ show("gap"); });
+  show("score");
+})();
+</script>

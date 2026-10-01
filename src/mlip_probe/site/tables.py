@@ -1,0 +1,258 @@
+"""The generated table bodies of docs/index.html (the <tbody> rows only; the headers are
+authored in the template next to the prose that describes the columns).
+
+    settle(axis)        every size, three arms: median, worst and best draw, spread, ceiling, shortfall
+    gain_summary()      per target: from which size each embedding is ahead of Magpie on ≥ 90 % of
+                        draws, where composition is ahead, and the gain at the largest size
+    gain_full()         every target, embedding and size of the paired difference
+    split_median()      total error per dataset size and split fraction, median over cells
+    split_wins()        which fraction wins each cell
+    shortfall_by_size_pooled()    shortfall at 5,000 / 7,000 / 10,000 / 20,000, mean over dense targets
+    shortfall_by_size_targets()   the same per target
+    cv_target(target)   the three estimators at every dataset size for one target
+    cv_budget(target)   bias and noise per estimator, added in quadrature
+"""
+from __future__ import annotations
+
+import numpy as np
+import pandas as pd
+
+from ..config import ARMS, EMBEDDINGS
+from .data import ARM_LABEL, Results
+from .targets import label, ordered
+
+LARGE_SIZES = [5000, 7000, 10000, 20000]
+TEST_FRACTION = 0.2
+
+
+def _n(n) -> str:
+    return f"{int(n):,}"
+
+
+def _f(v, fmt="{:.3f}", dash="&mdash;") -> str:
+    return dash if v is None or (isinstance(v, float) and np.isnan(v)) else fmt.format(v)
+
+
+def design_example(results: Results, axis: str, target: str = "band_gap", arm: str = "orb") -> str:
+    """The worked example in the design section: one target and arm, median with the worst
+    and best draw at every size."""
+    g = (results.curve(arm, axis, target).merge(results.extremes(arm, axis), on=["target", "n"], how="left")
+         .sort_values("n"))
+    return "\n".join(f'<tr><td>{_n(r.n)}</td><td class="num">{_f(r.median)}</td>'
+                     f'<td class="num">{_f(r.worst)}</td><td class="num">{_f(r.best)}</td></tr>' for r in g.itertuples())
+
+
+def _stable_n(results: Results, arm: str, target: str, axis: str) -> int | None:
+    """The XGBoost curve's first stable size, from thresholds.csv."""
+    th = results.thresholds
+    row = th[(th.arm == arm) & (th.target == target) & (th.method == "xgboost")]
+    v = row["n_stable" if axis == "train" else "test_n_stable"].iloc[0] if len(row) else float("nan")
+    return None if pd.isna(v) else int(v)
+
+
+def settle(results: Results, axis: str) -> str:
+    out = []
+    for target in results.targets():
+        for arm in ARMS:
+            g = results.curve(arm, axis, target)
+            if g.empty:
+                continue
+            g = g.merge(results.extremes(arm, axis), on=["target", "n"], how="left").sort_values("n")
+            stable_n = _stable_n(results, arm, target, axis)
+            first = True
+            for r in g.itertuples():
+                cls = ' class="settled"' if r.n == stable_n else ""
+                head = (f'<td rowspan="{len(g)}">{label(target)}</td><td rowspan="{len(g)}">{ARM_LABEL[arm]}</td>'
+                        if first else "")
+                first = False
+                out.append(f'<tr{cls}>{head}<td class="num">{_n(r.n)}</td><td class="num">{_f(r.draws, "{:.0f}")}</td>'
+                           f'<td class="num">{_f(r.median)}</td><td class="num">{_f(r.worst)}</td>'
+                           f'<td class="num">{_f(r.best)}</td><td class="num">{_f(r.spread)}</td>'
+                           f'<td class="num">{_f(r.ceiling)}</td><td class="num">{_f(r.gap)}</td></tr>')
+    return "\n".join(out)
+
+
+def _first_ahead(g: pd.DataFrame):
+    g = g.sort_values("n")
+    p10 = g.p10.to_numpy(float)
+    for i in range(len(g)):
+        if (p10[i:] > 0).all():
+            return int(g.n.iloc[i])
+    return None
+
+
+def _comp_ahead(g: pd.DataFrame) -> str:
+    ns = [int(r.n) for r in g.sort_values("n").itertuples() if r.p90 < 0]
+    if not ns:
+        return "&mdash;"
+    return _n(ns[0]) if len(ns) == 1 else f"{_n(ns[0])}&ndash;{_n(ns[-1])}"
+
+
+def gain_summary(results: Results) -> str:
+    gains = {e: results.gain_rows(e) for e in EMBEDDINGS}
+    rows = []
+    for t in results.targets():
+        cells, n_last = [], None
+        for e in EMBEDDINGS:
+            g = gains[e][gains[e].target == t]
+            if g.empty:
+                cells.append(("&mdash;", "&mdash;", "&mdash;"))
+                continue
+            last = g.sort_values("n").iloc[-1]
+            first = _first_ahead(g)
+            cells.append(("never" if first is None else _n(first), _comp_ahead(g), f"{last.med:+.3f}"))
+            n_last = n_last or _n(last.n)
+        if n_last is None:
+            continue
+        rows.append(f"<tr><td>{label(t)}</td>" + "".join(f'<td class="num">{a}</td><td class="num">{b}</td>'
+                                                          f'<td class="num">{c}</td>' for a, b, c in cells)
+                    + f'<td class="num">{n_last}</td></tr>')
+    return "\n".join(rows)
+
+
+def gain_full(results: Results) -> str:
+    rows = []
+    for e in EMBEDDINGS:
+        g = results.gain_rows(e)
+        for t in ordered(set(g.target)):
+            grp = g[g.target == t].sort_values("n")
+            first = True
+            for r in grp.itertuples():
+                head = f'<td rowspan="{len(grp)}">{label(t)}</td><td rowspan="{len(grp)}">{ARM_LABEL[e]}</td>' if first else ""
+                first = False
+                cls = ' class="settled"' if r.p10 > 0 else ""
+                rows.append(f'<tr{cls}>{head}<td class="num">{_n(r.n)}</td><td class="num">{int(r.k)}</td>'
+                            f'<td class="num">{r.med:+.3f}</td><td class="num">{r.p10:+.3f}</td>'
+                            f'<td class="num">{r.p90:+.3f}</td><td class="num">{100 * r.win:.0f}&nbsp;%</td></tr>')
+    return "\n".join(rows)
+
+
+def _split_cells(results: Results) -> pd.DataFrame:
+    s = results.split
+    if not len(s):
+        return s
+    s = s[s.arm.isin(EMBEDDINGS)].dropna(subset=["total"]).copy()
+    s["split"] = s.fraction.map(lambda f: f"{round((1 - f) * 100)}/{round(f * 100)}")
+    return s
+
+
+def split_median(results: Results) -> str:
+    c = _split_cells(results)
+    if not len(c):
+        return ""
+    out = []
+    for N, g in c.groupby("N"):
+        m = g.groupby(["fraction", "split", "n_train", "n_test"]).agg(
+            score=("score", "median"), shortfall=("shortfall", "median"), spread=("spread", "median"),
+            total=("total", "median")).reset_index().sort_values("fraction")
+        best = m.total.idxmin()
+        for i, r in enumerate(m.itertuples()):
+            cls = ' class="settled"' if r.Index == best else ""
+            first = f'<td rowspan="{len(m)}" class="num">{_n(N)}</td>' if i == 0 else ""
+            out.append(f'<tr{cls}>{first}<td>{r.split}</td><td class="num">{_n(r.n_train)}</td>'
+                       f'<td class="num">{_n(r.n_test)}</td><td class="num">{_f(r.score)}</td>'
+                       f'<td class="num">{_f(r.shortfall)}</td><td class="num">{_f(r.spread)}</td>'
+                       f'<td class="num">{_f(r.total)}</td></tr>')
+    k = c.groupby("N").size().min() // c.fraction.nunique()
+    return "\n".join(out) + f"\n<!-- median over {k} cells -->"
+
+
+def split_wins(results: Results) -> str:
+    c = _split_cells(results)
+    if not len(c):
+        return ""
+    out = []
+    for N, g in c.groupby("N"):
+        w = g.pivot_table(index=["arm", "target"], columns="fraction", values="total")
+        w = w.dropna()
+        if w.empty:
+            continue
+        b = w.idxmin(axis=1)
+        k = len(w)
+        beats = (w[0.2] < w[0.5]).sum() if 0.2 in w and 0.5 in w else 0
+        out.append(f'<tr><td class="num">{_n(N)}</td><td class="num">{beats} of {k}</td>'
+                   f'<td class="num">{(b == 0.2).sum()} of {k}</td><td class="num">{(b == 0.3).sum()} of {k}</td>'
+                   f'<td class="num">{(b == 0.1).sum()} of {k}</td></tr>')
+    return "\n".join(out)
+
+
+def _gaps(results: Results) -> pd.DataFrame:
+    frames = [results.curve(e, "train") for e in EMBEDDINGS]
+    frames = [f for f in frames if len(f)]
+    if not frames:
+        return pd.DataFrame()
+    d = pd.concat(frames)
+    d = d[d.n.isin(LARGE_SIZES)]
+    return d.groupby(["target", "n"]).gap.mean().unstack("n")
+
+
+def shortfall_by_size_pooled(results: Results) -> str:
+    g = _gaps(results)
+    if g.empty:
+        return ""
+    g = g.reindex(columns=LARGE_SIZES).dropna()
+    if g.empty:
+        return ""
+    mean = g.mean()
+    steps = ["&mdash;"] + [f"{mean[a] - mean[b]:.3f}" for a, b in zip(LARGE_SIZES, LARGE_SIZES[1:])]
+    rows = ["<tr><td>shortfall</td>" + "".join(f'<td class="num">{mean[n]:.3f}</td>' for n in LARGE_SIZES) + "</tr>",
+            "<tr><td>bought by the step</td>" + "".join(f'<td class="num">{x}</td>' for x in steps) + "</tr>",
+            "<tr><td>materials required</td>" + "".join(f'<td class="num">{round(n / (1 - TEST_FRACTION)):,}</td>'
+                                                      for n in LARGE_SIZES) + "</tr>"]
+    return "\n".join(rows) + f"\n<!-- pooled over {len(g)} targets -->"
+
+
+def shortfall_by_size_targets(results: Results) -> str:
+    g = _gaps(results)
+    if g.empty:
+        return ""
+    g = g.reindex(columns=LARGE_SIZES).loc[ordered(g.index)].sort_values(LARGE_SIZES[0])
+    hardest = g[LARGE_SIZES[0]].idxmax()
+    rows = []
+    for t, r in g.iterrows():
+        cells = "".join(f'<td class="num">{_f(r[n])}</td>' for n in LARGE_SIZES)
+        name = label(t)
+        if t == hardest:
+            name = f"<strong>{name}</strong>"
+            cells = cells.replace('<td class="num">', '<td class="num"><strong>').replace("</td>", "</strong></td>")
+        rows.append(f"<tr><td>{name}</td>{cells}</tr>")
+    full = g.dropna()
+    if len(full):
+        span = "".join(f'<td class="num">{full[n].max() / full[n].min():.1f}&times;</td>' for n in LARGE_SIZES)
+        rows.append(f"<tr><td>span, hardest / easiest</td>{span}</tr>")
+    return "\n".join(rows)
+
+
+def _shortfall_at(results: Results, arm: str, target: str, n_train: float):
+    c = results.ceiling(arm, target)
+    m = results.at(arm, "train", target, "median", n_train)
+    return None if c is None or m is None else max(0.0, c - m)
+
+
+def cv_target(results: Results, target: str = "band_gap") -> str:
+    rows = []
+    for e in EMBEDDINGS:
+        c = results.cv_cells(e)
+        c = c[c.target == target].sort_values("n")
+        for r in c.itertuples():
+            rows.append(f'<tr><td>{ARM_LABEL[e]}</td><td class="num">{_n(r.n)}</td><td class="num">{_f(r.draws, "{:.0f}")}</td>'
+                        f'<td class="num">{_f(r.rh_rmse, "{:.4f}")}</td><td class="num">{_f(r.cv_rmse, "{:.4f}")}</td>'
+                        f'<td class="num">{_f(r.red * 100, "{:+.0f}&nbsp;%")}</td><td class="num">{_f(r.rh_cov, "{:.2f}")}</td>'
+                        f'<td class="num">{_f(r.cv_cov, "{:.2f}")}</td>'
+                        f'<td class="num">{_f(_shortfall_at(results, e, target, 0.8 * r.n))}</td></tr>')
+    return "\n".join(rows)
+
+
+def cv_budget(results: Results, target: str = "band_gap", arm: str = "orb") -> str:
+    """Bias (shortfall at 0.8n) and each estimator's noise (sd of its error), in quadrature."""
+    c = results.cv_cells(arm)
+    c = c[c.target == target].sort_values("n")
+    rows = []
+    for r in c.itertuples():
+        bias = _shortfall_at(results, arm, target, 0.8 * r.n)
+        noise = [r.ho_sd, r.rh_sd, r.cv_sd]
+        tot = [None if bias is None or pd.isna(x) else float(np.hypot(bias, x)) for x in noise]
+        rows.append(f'<tr><td class="num">{_n(r.n)}</td><td class="num">{_f(bias)}</td>'
+                    + "".join(f'<td class="num">{_f(x)}</td>' for x in noise)
+                    + "".join(f'<td class="num">{_f(x)}</td>' for x in tot) + "</tr>")
+    return "\n".join(rows)

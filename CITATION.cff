@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use these results, cite the paper (paper, code and datasets released November 2026)."
+title: "mlip-probe-data-requirements"
+authors:
+  - family-names: Stepurko
+    given-names: Natalija
+license: Apache-2.0
+preferred-citation:
+  type: conference-paper
+  title: "Out-of-training properties in frozen interatomic potential embeddings are decodable and ordered by physical scale"
+  authors:
+    - family-names: Stepurko
+      given-names: Natalija
+    - family-names: Laulainen
+      given-names: J.
+  year: 2026
+  conference:
+    name: "AI4Sci and AI4Mat workshops, NeurIPS 2026"
+  notes: "Paper, code and datasets released November 2026."
