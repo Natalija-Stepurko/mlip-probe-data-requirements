@@ -741,7 +741,7 @@ materials formation energy is essentially at its ceiling, while crystal system i
     </div>
   </div>
   <div style="position:relative">
-    <svg id="cvxChart" viewBox="0 0 700 420" role="img" aria-label="cross-validation against repeated holdout, per target and dataset size"></svg>
+    <svg id="cvxChart" viewBox="0 0 700 420" role="img" aria-label="cross-validation against five averaged splits, per target and dataset size"></svg>
     <div class="cvx-tip" id="cvxTip"></div>
   </div>
   <p class="sfx-cap" id="cvxCap"></p>
@@ -757,14 +757,14 @@ materials formation energy is essentially at its ceiling, while crystal system i
 </tbody></table></div>
 <p>At <span data-live="budN">2,000</span> materials cross-validation cuts the noise from <span data-live="budNoise1">0.020</span> (one split) to <span data-live="budNoiseCv">0.011</span>, and the total from <span data-live="budTot1">0.125</span> to <span data-live="budTotCv">0.124</span>, because the bias of <span data-live="budBias">0.123</span> dominates.</p>
 
-<details class="every"><summary>Full data &mdash; band gap, repeated holdout and CV at every dataset size</summary><div class="inner">
+<details class="every"><summary>Full data &mdash; band gap, five averaged splits and cross-validation at every dataset size</summary><div class="inner">
 <p class="sub">Shortfall is the distance from the full-corpus score at the training size each arm uses, 0.8n.</p>
 <div class="scroll"><table>
-<thead><tr><th>emb</th><th class="num">n</th><th class="num">draws</th><th class="num">repeated holdout RMSE</th><th class="num">CV RMSE</th><th class="num">reduction</th><th class="num">repeated holdout cov.</th><th class="num">CV cov.</th><th class="num">shortfall</th></tr></thead>
+<thead><tr><th>emb</th><th class="num">n</th><th class="num">draws</th><th class="num">five-split error</th><th class="num">CV RMSE</th><th class="num">reduction</th><th class="num">five-split coverage</th><th class="num">CV cov.</th><th class="num">shortfall</th></tr></thead>
 <tbody>
 <!--{{tbl_cv_target}}-->
 </tbody></table></div>
-<p>CV has the lower RMSE in <span data-live="bgWin">9</span> of <span data-live="bgCells">10</span> cells; its coverage is below 0.90 in <span data-live="bgCvLow">6</span> of the <span data-live="bgCells">10</span>, and repeated holdout's in <span data-live="bgRhLow">4</span>. Draws are 20 at every n. The shortfall column is the same quantity for both arms, since both train on 0.8n.</p></div></details>
+<p>CV has the lower RMSE in <span data-live="bgWin">9</span> of <span data-live="bgCells">10</span> cells; its coverage is below 0.90 in <span data-live="bgCvLow">6</span> of the <span data-live="bgCells">10</span>, and the five-split average's in <span data-live="bgRhLow">4</span>. Draws are 20 at every n. The shortfall column is the same quantity for both arms, since both train on 0.8n.</p></div></details>
 
 <div class="call">
 <p><strong>On small datasets, score with 5-fold cross-validation or five averaged splits, never one split; cross-validation is the slightly more accurate of the two at the same cost.</strong> Neither moves the score closer to the full-corpus value, and neither's 95&nbsp;% interval should be quoted as it stands.</p>
@@ -1356,8 +1356,8 @@ var REDUCED = !!(window.matchMedia &&
         var cy = y0 + rowH*(j+0.5)/NS.length;
         var tip = pretty(t)+"  n="+fmt(n)+"  draws "+r.draws+
                   "\nRMSE reduction  "+(r.red == null ? "–" : (r.red*100).toFixed(1)+" %")+
-                  "\ncoverage  CV "+f(r.cv_cov,2)+"   repeated holdout "+f(r.rh_cov,2)+
-                  "\nRMSE  CV "+f(r.cv_rmse,4)+"   repeated holdout "+f(r.rh_rmse,4);
+                  "\ncoverage  CV "+f(r.cv_cov,2)+"   five splits "+f(r.rh_cov,2)+
+                  "\nRMSE  CV "+f(r.cv_rmse,4)+"   five splits "+f(r.rh_rmse,4);
         if (isCov){
           [["rh_cov","var(--muted)"],["cv_cov","var(--accent3)"]].forEach(function(p){
             if (r[p[0]] == null) return;
@@ -1379,8 +1379,8 @@ var REDUCED = !!(window.matchMedia &&
     o.push('<line x1="'+X0+'" y1="'+Y1+'" x2="'+X1+'" y2="'+Y1+
            '" style="stroke:var(--axis);stroke-width:1"/>');
     o.push('<text x="'+X0+'" y="'+(H-6)+'" font-size="9.5" fill="var(--muted)">'+
-           (isCov ? 'x: coverage of the 95 % interval &#183; filled: cross-validation &#183; grey: repeated holdout &#183; shaded: the [0.90, 0.98] band, dashed: nominal 0.95'
-                  : 'x: RMSE reduction vs repeated holdout &#183; one dot per dataset size, '+fmt(NS[0])+' at the top of each row to '+fmt(NS[NS.length-1])+' at the bottom &#183; filled: clears the 30 % bar')+
+           (isCov ? 'x: coverage of the 95 % interval &#183; filled: cross-validation &#183; grey: five averaged splits &#183; shaded: the [0.90, 0.98] band, dashed: nominal 0.95'
+                  : 'x: error cut vs five averaged splits &#183; one dot per dataset size, '+fmt(NS[0])+' at the top of each row to '+fmt(NS[NS.length-1])+' at the bottom &#183; filled: clears the 30 % bar')+
            '</text>');
     o.push('<text transform="rotate(-90)" x="'+(-(Y0+Y1)/2).toFixed(0)+'" y="12" text-anchor="middle" '+
            'font-size="9.5" fill="var(--muted)">target</text>');
