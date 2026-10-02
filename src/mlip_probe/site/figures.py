@@ -310,7 +310,7 @@ def cv_gain(results: Results) -> str:
     df = _cv_means(results)
     if df is None:
         return ""
-    lo, hi = -0.2, 0.5
+    lo, hi = -0.2, 0.6
 
     def draw(r, cx, step, colour, lo, hi):
         y0, y1 = _cy(0, lo, hi), _cy(min(max(r.gain, lo), hi), lo, hi)
@@ -320,7 +320,7 @@ def cv_gain(results: Results) -> str:
                 f'style="fill:{colour};fill-opacity:{0.85 if r.gain > 0 else 0.35}"/>',
                 f'<text x="{cx:.1f}" y="{top - 3:.1f}" text-anchor="middle" font-size="8" fill="{MUTED}" '
                 f'font-family="monospace">{r.gain * 100:+.0f}%</text>']
-    svg = _cv_panels(df, lo, hi, lambda v: f"{v * 100:+.0f}%", draw, ylabel="RMSE reduction vs repeated holdout")
+    svg = _cv_panels(df, lo, hi, lambda v: "0%" if abs(v) < 1e-9 else f"{v * 100:+.0f}%", draw, ylabel="error cut vs five averaged splits")
     zero = _cy(0, lo, hi)
     return svg.replace("</svg>", f'<line x1="{CX0}" y1="{zero:.1f}" x2="{CX1}" y2="{zero:.1f}" '
                                  f'style="stroke:{INK};stroke-width:1.2"/></svg>')
@@ -330,13 +330,13 @@ def cv_coverage(results: Results) -> str:
     df = _cv_means(results)
     if df is None:
         return ""
-    lo, hi = 0.70, 1.00
+    lo, hi = 0.60, 1.00
 
     def draw(r, cx, step, colour, lo, hi):
         o = step * 0.16
         return [f'<circle cx="{cx - o:.1f}" cy="{_cy(min(max(r.rh, lo), hi), lo, hi):.1f}" r="3.2" style="fill:{INK}"/>',
                 f'<circle cx="{cx + o:.1f}" cy="{_cy(min(max(r.cv, lo), hi), lo, hi):.1f}" r="3.2" style="fill:{colour}"/>']
-    svg = _cv_panels(df, lo, hi, lambda v: f"{v:.2f}", draw, ylabel="coverage of the 95% interval")
+    svg = _cv_panels(df, lo, hi, lambda v: f"{v:.2f}", draw, ylabel="share of datasets inside the interval")
     y = _cy(NOMINAL, lo, hi)
     return svg.replace("</svg>", f'<line x1="{CX0}" y1="{y:.1f}" x2="{CX1}" y2="{y:.1f}" '
                                  f'style="stroke:{INK};stroke-width:1;stroke-dasharray:4 3"/></svg>')

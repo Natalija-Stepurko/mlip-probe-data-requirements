@@ -52,6 +52,8 @@ tr.settled td:not([rowspan]){background:color-mix(in srgb,var(--hl,var(--axis)) 
 tr.settled .num:last-child{font-weight:700;color:var(--hl,var(--ink))}
 table.gain-sum th,table.gain-sum td{padding:6px 10px}
 table.compact th,table.compact td{padding:6px 10px}
+.cv-fig{margin:6px 0 8px}
+.cv-fig .keyline{padding-left:4px}
 h3.lead{font-size:inherit;font-weight:700;color:var(--ink);letter-spacing:normal}
 .grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
 .floor-box .grid{margin-top:4px}
@@ -709,9 +711,16 @@ materials formation energy is essentially at its ceiling, while crystal system i
 <h3>What the data supports</h3>
 <p><strong>Never rely on a single split.</strong> One 80/20 split is the least accurate of the three at every size, with roughly twice the error of the other two at 1,000 materials. Both alternatives beat it in almost every combination.</p>
 <p><strong>Cross-validation is a little more accurate than five averaged splits, at the same cost.</strong> It is closer to the true score in <span data-live="cvWin">84</span>&nbsp;% of the combinations, with a median <span data-live="cvGain">16.8</span>&nbsp;% lower error at 1,000 materials or fewer. The largest advantage is at 100 materials, where averaging five scores, each measured on only 20 materials, drags the estimate down: on energy above hull with ORB-v3 the five-split average sits 0.87 below the true score on average, and cross-validation 0.11. Scoring all predictions together avoids that.</p>
+<figure class="panel cv-fig"><figcaption>How much smaller cross-validation's error is than that of five averaged 80/20 splits</figcaption>
 <!--{{fig_cv_gain}}-->
+</figure>
+<p class="sub">Each bar is one dataset size, averaged over the nine properties: 1&nbsp;&minus; (cross-validation's error &divide; the five-split average's error). +20&nbsp;% means cross-validation's estimate is 20&nbsp;% closer to the true score; a bar below zero would mean it is further away.</p>
 <p><strong>None of the three intervals can be taken at face value.</strong> A 95&nbsp;% interval should contain the true score 95&nbsp;% of the time; these contain it 81&ndash;88&nbsp;% of the time. Part of the miss comes from the comparison itself: every method trains on 80&nbsp;% of the data and the true score uses all of it, so all three run slightly low. Measured against the expected score of a probe trained on 80&nbsp;% of the data, the intervals still contain it only 87&ndash;90&nbsp;% of the time. Cross-validation's interval is the narrowest, so it misses most often. Quote the spread measured on this page for the test size in hand, which is wider.</p>
+<figure class="panel cv-fig"><figcaption>How often each method's 95&nbsp;% interval contains the true score</figcaption>
+<p class="keyline"><span class="key"><i class="kc" style="background:var(--ink)"></i>five averaged 80/20 splits</span><span class="key"><i class="kc" style="background:var(--orb)"></i><i class="kc" style="background:var(--uma)"></i>5-fold cross-validation</span><span class="key"><i class="kd"></i>dashed: 0.95, what a 95&nbsp;% interval promises</span></p>
 <!--{{fig_cv_coverage}}-->
+</figure>
+<p class="sub">Each pair of dots is one dataset size, averaged over the nine properties.</p>
 
 <div class="cvx">
   <div class="cvx-strip">
