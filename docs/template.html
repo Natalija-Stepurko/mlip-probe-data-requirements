@@ -1185,7 +1185,7 @@ var REDUCED = !!(window.matchMedia &&
       return Math.max.apply(null, a.s.map(function(d){ return d.total; })); })) * 1.30;
     var x = function(i){ return X0 + i*(X1-X0)/(FR.length-1); };
     var y = function(v){ return Y1 - (v/hi)*(Y1-Y0); };
-    var o = [];
+    var o = [], labels = [];
     [0,0.25,0.5,0.75,1].forEach(function(g){
       var yy = Y1 - g*(Y1-Y0);
       o.push('<line x1="'+X0+'" y1="'+yy.toFixed(1)+'" x2="'+X1+'" y2="'+yy.toFixed(1)+
@@ -1208,11 +1208,18 @@ var REDUCED = !!(window.matchMedia &&
         o.push('<circle cx="'+x(d.i).toFixed(1)+'" cy="'+y(d.total).toFixed(1)+'" r="'+
                (isBest?5:3.2)+'" style="fill:'+col+
                (isBest?';stroke:var(--panel);stroke-width:2':'')+'"/>');
-        if (isBest)
-          o.push('<text x="'+x(d.i).toFixed(1)+'" y="'+(y(d.total)-11).toFixed(1)+
-                 '" text-anchor="middle" font-size="9.5" fill="'+col+
-                 '" font-family="monospace">'+d.total.toFixed(3)+'</text>');
+        if (isBest) labels.push({x:x(d.i), y:y(d.total), text:d.total.toFixed(3), col:col});
       });
+    });
+    // Minimum labels go on top of every line, with a halo; when two would collide, the lower one
+    // is placed under its point.
+    labels.sort(function(a,b){ return a.y - b.y; });
+    labels.forEach(function(l, k){
+      var clash = labels.slice(0, k).some(function(m){ return Math.abs(m.x - l.x) < 44 && Math.abs(m.y - l.y) < 16; });
+      var ty = clash ? l.y + 19 : l.y - 10;
+      o.push('<text x="'+l.x.toFixed(1)+'" y="'+ty.toFixed(1)+'" text-anchor="middle" font-size="10" font-weight="700" '+
+             'fill="'+l.col+'" font-family="monospace" style="paint-order:stroke;stroke:var(--panel);stroke-width:4px;'+
+             'stroke-linejoin:round">'+l.text+'</text>');
     });
     FR.forEach(function(f,i){
       o.push('<text x="'+x(i).toFixed(1)+'" y="'+(Y1+16)+'" text-anchor="middle" font-size="10" '+
