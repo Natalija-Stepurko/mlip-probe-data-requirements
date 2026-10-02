@@ -445,7 +445,7 @@ draws per size, plus the full 20,000-material test set once. Bulk modulus stops 
 <tbody>
 <tr><td><strong>shortfall</strong><br>(training-size curves)</td><td style="white-space:normal">At each training size, many separate training sets drawn from the pool, no material in more than one of them. Each trains a fresh probe, scored on the same frozen 20,000 test materials. A point on the curve is the median over those training sets; its band is their 10th-to-90th-percentile range.</td></tr>
 <tr><td><strong>spread</strong><br>(test-size curves)</td><td style="white-space:normal">One probe, trained once on 20,000 materials. Its predictions on the frozen test set are re-scored on 200 random subsets of that set at each test size; only the test set changes.</td></tr>
-<tr><td><strong>ceiling</strong><br>(full-corpus score)</td><td style="white-space:normal">From the paper: the same probe trained on 80&nbsp;% of all 154,875 materials and scored on the other 20&nbsp;%, one split per target and feature set.</td></tr>
+<tr><td><strong>ceiling</strong><br>(full-corpus score)</td><td style="white-space:normal">From Stepurko &amp; Laulainen (2026), the paper this page accompanies: the same probe trained on 80&nbsp;% of all 154,875 materials and scored on the other 20&nbsp;%, one split per target and feature set.</td></tr>
 <tr><td><strong>split fraction</strong></td><td style="white-space:normal">Computed from the two curves above; no probe is trained for it.</td></tr>
 <tr><td><strong>cross-validation</strong></td><td style="white-space:normal">The only direct comparison of one split, five averaged splits and 5-fold cross-validation, on 20 separate small datasets per combination.</td></tr>
 </tbody></table></div>
@@ -699,12 +699,12 @@ materials formation energy is essentially at its ceiling, while crystal system i
 <p>On real data the true score is unknown, so the test builds one. A frozen set of 20,000 materials (6,426 for bulk modulus) is kept out of everything. For each small dataset of <em>n</em> materials drawn from the rest, a probe trained on all <em>n</em> is scored on those 20,000: that is the <strong>true score</strong>, the one the small-data estimate is trying to guess. Each of the three methods then estimates it from the <em>n</em> materials alone. This is repeated on <span data-live="cvCells">90</span> combinations &mdash; two embeddings, nine properties, five dataset sizes from 100 to 2,000 materials &mdash; with 20 separate datasets each (fewer on bulk modulus above 500).</p>
 
 <div class="scroll"><table>
-<thead><tr><th rowspan="2">method</th><th rowspan="2" class="num">models<br>trained</th><th colspan="2" class="num">typical error of the estimate</th><th colspan="2" class="num">its 95&nbsp;% interval contains</th></tr>
-<tr><th class="num">200 materials</th><th class="num">1,000 materials</th><th class="num">the true<br>score</th><th class="num">the expected score<br>at 80&nbsp;% of the data</th></tr></thead>
+<thead><tr><th rowspan="2">method</th><th rowspan="2" class="num">models<br>trained</th><th colspan="2" class="num">typical error of the reported score</th><th colspan="2" class="num">how often its 95&nbsp;% interval contains&hellip;</th></tr>
+<tr><th class="num">dataset of<br>200 materials</th><th class="num">dataset of<br>1,000 materials</th><th class="num">&hellip;the true<br>score</th><th class="num">&hellip;the expected score<br>at 80&nbsp;% of the data</th></tr></thead>
 <tbody>
 <!--{{tbl_cv_overview}}-->
 </tbody></table></div>
-<p class="sub">Typical error: the root-mean-square difference between the estimate and the true score, median over the combinations at that size (R&sup2; or macro-F1). The interval columns are averages over all 90 combinations; a well-calibrated 95&nbsp;% interval would read 0.95.</p>
+<p class="sub">Each method sees one small dataset and reports a score with a 95&nbsp;% interval around it. <strong>Typical error</strong>: how far the reported score lands from the true score, as a root-mean-square over the 20 datasets of that size, median over properties and embeddings (R&sup2; or macro-F1). The dataset is everything the method has; each of its models trains on 80&nbsp;% of it. <strong>Interval columns</strong>: the share of datasets on which the reported interval contained the true score, or the expected score of a probe trained on 80&nbsp;% of the dataset, which is what every method actually trains on; averaged over all 90 combinations, which span the five dataset sizes from 100 to 2,000. An interval that is as reliable as it claims would read 0.95.</p>
 
 <h3>What the data supports</h3>
 <p><strong>Never rely on a single split.</strong> One 80/20 split is the least accurate of the three at every size, with roughly twice the error of the other two at 1,000 materials. Both alternatives beat it in almost every combination.</p>
