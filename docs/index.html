@@ -52,6 +52,7 @@ tr.settled td:not([rowspan]){background:color-mix(in srgb,var(--hl,var(--axis)) 
 tr.settled .num:last-child{font-weight:700;color:var(--hl,var(--ink))}
 table.gain-sum th,table.gain-sum td{padding:6px 10px}
 table.compact th,table.compact td{padding:6px 10px}
+h3.lead{font-size:inherit;font-weight:700;color:var(--ink);letter-spacing:normal}
 .grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
 .floor-box .grid{margin-top:4px}
 .floor-cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 28px;align-items:start}
@@ -1413,7 +1414,7 @@ materials formation energy is essentially at its ceiling, while crystal system i
 
 <div class="floor-cols">
 <div>
-<h3>Training floor: 5,000 materials</h3>
+<h3 class="lead">Training floor: 5,000 materials</h3>
 <p>The shortfall is how far a score sits below the same probe's full-corpus score. It falls at every step of the grid:</p>
 <div class="scroll"><table class="compact">
 <thead><tr><th class="num">training<br>materials</th><th class="num">median<br>shortfall</th><th class="num">range across<br>targets</th><th class="num">materials<br>at 80/20</th></tr></thead>
@@ -1433,7 +1434,7 @@ materials formation energy is essentially at its ceiling, while crystal system i
 <p>There is no knee. Up to 2,000 the median target is more than 0.10 short, so a score there is mainly a lower bound. From 5,000 to 20,000 each step buys 0.011&ndash;0.014 of shortfall and costs progressively more data &mdash; 40&nbsp;% more materials for the first step, then 43&nbsp;%, then 100&nbsp;%. The floor sits at 5,000, where the median target is 0.058 short; it is set by how much data it is reasonable to demand.</p>
 </div>
 <div>
-<h3>Test floor: 500 materials</h3>
+<h3 class="lead">Test floor: 500 materials</h3>
 <p>The spread is how far a score moves when the test set is re-drawn: the p10&ndash;p90 width over 200 re-drawn test sets, scored with one probe trained on 20,000 materials.</p>
 <div class="scroll"><table class="compact">
 <thead><tr><th class="num">test<br>materials</th><th class="num">median<br>spread</th><th class="num">range across<br>targets</th><th class="num">&plusmn; on<br>one score</th></tr></thead>
@@ -1457,7 +1458,7 @@ materials formation energy is essentially at its ceiling, while crystal system i
 <p>ORB-v3 and UMA-S agree to within 0.029 at every size, and within 0.01 on all targets except energy above hull, where the gap is 0.013&ndash;0.029, and magnetic density at 5,000, where it is 0.011; both rank the targets in nearly the same order (rank correlation 0.88&ndash;0.93), so which targets need more data is a property of the task and not of either one.</p>
 
 
-<h3>Raising the floor does not fix the target that needs fixing</h3>
+<h3 class="lead">Raising the floor does not fix the target that needs fixing</h3>
 <div class="scroll"><table>
 <thead><tr><th>target</th><th class="num">5,000</th><th class="num">7,000</th><th class="num">10,000</th><th class="num">20,000</th></tr></thead>
 <tbody>
@@ -1477,7 +1478,7 @@ materials formation energy is essentially at its ceiling, while crystal system i
 
 <p>The span across targets widens with training data. Crystal system at 20,000 is still 0.048 short &mdash; worse than formation energy is at 5,000, on four times the data. A floor set high enough to bring crystal system within 0.05 of its ceiling would be 20,000, the largest size measured, and still leave the easy targets paying for it.</p>
 
-<h3>Floors for one property</h3>
+<h3 class="lead">Floors for one property</h3>
 <p>Both floors describe the median target, and the targets differ by an order of magnitude on both axes. Anyone interested in a single property should set the floors from its own row:</p>
 <div class="scroll"><table>
 <thead><tr><th>target</th><th class="num">within 0.05 of its ceiling from<br>(training materials, ORB-v3 / UMA-S)</th><th class="num">spread at most 0.05 from<br>(test materials, ORB-v3 / UMA-S)</th></tr></thead>
@@ -1501,104 +1502,45 @@ materials formation energy is essentially at its ceiling, while crystal system i
 
 <p>A score below the training floor is not worthless &mdash; it is a lower bound, and should be reported as one, with its per-target shortfall beside it. Below the test floor it is noisier, and should be reported with its spread. Buying 0.011 of shortfall for another 2,500 materials is a trade for the reader to make.</p>
 
-<h2 id="cv">Cross-validation against repeated holdout</h2>
+<h2 id="cv">Cross-validation: a better estimate from the same data?</h2>
 <div class="call warn cv-pending"><p>The cross-validation comparison has not been run to completion yet; its results will appear here.</p></div>
-<p class="sub needs-cv">Cross-validation is the more accurate estimator here and still does not change the answer: it cuts estimator RMSE by a median <span data-live="cvGain4">16.8</span>&nbsp;% at n&nbsp;&le;&nbsp;1,000 and is closer to the truth in <span data-live="cvWin4">84</span>&nbsp;% of cells, but its intervals contain the truth less often on average than either holdout's, and against repeated holdout total error falls by a median of under 1&nbsp;%, because every fold still trains on 80&nbsp;% and the shortfall is the larger term in 85 of the 90 cells.</p><div class="rule-box">
-<span class="tag">fixed before the run</span>
-<p>Adopt cross-validation only if its interval covers within <strong>[0.90, 0.98]</strong>
-and its estimator RMSE falls by at least <strong>30&nbsp;%</strong> at
-n&nbsp;&le;&nbsp;1,000.</p>
-<p class="why needs-cv">Coverage falls short: <span data-live="cvCov">0.808</span> on average against repeated
-holdout's <span data-live="rhCov">0.851</span> and a single split's
-<span data-live="hoCov">0.880</span>, across
-<span data-live="cvCells">90</span> cells on nine targets, with
-<span data-live="cvLow">61</span> of the cells below 0.90. So does the gain: a median
-<span data-live="cvGain2">16.8</span>&nbsp;% reduction at n&nbsp;&le;&nbsp;1,000, consistent in
-direction &mdash; cross-validation is closer to the truth in <span data-live="cvWin2">84</span>&nbsp;% of
-cells &mdash; and under the 30&nbsp;% bar.</p>
-</div>
+<div class="needs-cv">
+<p class="sub">With a small dataset, the score you report is itself an estimate. This section compares three ways of making that estimate from the same materials.</p>
 
-
-<p>A holdout split spends each material on training or testing, never both. Widening the test fraction buys test materials only by giving up training materials, so it trades one floor against the other. <strong>k-fold escapes that trade:</strong> split into 5 folds, train on 4 and predict the fifth, rotate. Every material trains <em>and</em> gets predicted, by a model that never saw it.</p>
-
-<div class="scroll"><table>
-<thead><tr><th>1,000 materials</th><th class="num">train per fit</th><th class="num">fits</th><th class="num">materials predicted</th></tr></thead>
-<tbody>
-<tr><td>80/20 holdout</td><td class="num">800</td><td class="num">1</td><td class="num">200</td></tr>
-<tr><td>5-fold CV</td><td class="num">800</td><td class="num">5</td><td class="num"><strong>1,000</strong></td></tr>
-</tbody></table></div>
-
-<p>Both train on 800, so any downward bias from training size is identical. Only the number of materials measured on changes &mdash; 5&times; as many, paid for in compute. On the test-size curve above, going from 200 to 1,000 test materials more than halves the spread, so the gain ought to be large.</p>
-
-<p><strong>That is where the obvious argument breaks down.</strong> Those 1,000 predictions come from <em>five different models</em>, so they are not exchangeable with 1,000 predictions from one, and the spread cannot simply be read off the test-size curve above. Whether the gain is real, and how big, has to be measured &mdash; against a truth that is constructible: a model trained on <em>n</em> materials has a true score, obtained by evaluating it on a frozen 20,000-material reference (6,426 for bulk modulus) that never entered training.<span class="needs-cv"> Every estimator is scored against that, over 20 disjoint draws per target and dataset size (fewer on bulk modulus from 500 materials up), across 2 embeddings &times; 9 targets &times; 5 dataset sizes &mdash; 90 cells.</span></p>
-
-<h3>How it was measured, step by step</h3>
-<p class="sub">The difficulty is that &ldquo;which estimator is better&rdquo; needs a truth to compare against, and on real data the true score is exactly what you do not have.</p>
+<p><strong>The problem.</strong> To know how well a probe predicts a property, you score it on materials it was not trained on. With a small dataset every material held back for testing is one fewer to train on, and a test set of a few hundred materials gives a noisy score. There are three common ways to spend the materials you have:</p>
 
 <div class="steps">
-
-<div class="step"><h3>Make the truth knowable</h3>
-<p>Set aside 20,000 materials as a frozen reference. A model trained on anything else has a <em>true</em> score: how it does on those 20,000. That is not an estimate &mdash; it is the answer every estimator is trying to guess.</p></div>
-
-<div class="step"><h3>Carve datasets that never touch it</h3>
-<p>Draw a dataset <em>U</em> of n materials from the remaining pool, disjoint from the reference and from every other draw. n runs 100, 200, 500, 1,000, 2,000 &mdash; the range a small dataset actually falls in.</p>
-<p class="why">Disjointness matters twice. If <em>U</em> overlapped the reference, the truth would be scored partly on materials the model trained on. If draws overlapped each other, 20 repeats would not be 20 independent trials, and the spread between them would come out too narrow.</p></div>
-
-<div class="step"><h3>Run all three estimators on the same U</h3>
-<p><strong>Single split:</strong> 80/20, fit on 0.8n, score the held-out fifth, with a bootstrap interval over it. <strong>Repeated holdout:</strong> five such splits on different seeds, report the mean, with a t-interval over the five scores. <strong>5-fold CV:</strong> five folds over the same <em>U</em>, each fitting on 0.8n and predicting its own fifth; pool all n out-of-fold predictions and score once, with a bootstrap interval over the pooled predictions.</p>
-<p class="why">Every arm fits on 0.8n, so whatever downward bias comes from training size is identical across them. All three see the same <em>U</em>, so the comparison is paired and most draw-to-draw noise drops out. What differs is only how the available materials are spent on measuring.</p></div>
-
-<div class="step"><h3>Score each against the same truth</h3>
-<p>The truth for a draw is the score of a probe fitted on all n materials of <em>U</em> &mdash; the one you would deploy &mdash; on the reference. All three estimators are scored against it.</p>
-<p class="why">The truth costs one extra fit per draw: the probe on all n materials, scored once on the reference. The split and fold models never predict the reference.</p></div>
-
-<div class="step"><h3>Repeat 20 times, and measure both</h3>
-<p><strong>Accuracy:</strong> RMSE of each estimate against its truth, across draws. <strong>Coverage:</strong> how often the reported 95&nbsp;% interval actually contains the truth.</p>
-<p class="why">Accuracy alone would mislead. An estimator can sit closer on average while claiming a confidence it has not earned, and a number that is usually close but occasionally wrong <em>without warning</em> is worse than one that is honest about its range.</p>
-<p class="why needs-cv">The third criterion &mdash; distance from the ceiling &mdash; is not measured by this run. It comes from combining these noise figures with the training-size curve earlier on the page, and it was added after the run. It also argues against adopting CV: against repeated holdout, total error changes by a median of under 1&nbsp;%.</p></div>
-
-<div class="step"><h3>Fix the decision rule before looking</h3>
-<p>CV is adopted only if its interval covers within [0.90, 0.98] <strong>and</strong> cuts estimator RMSE by at least 30&nbsp;% at n&nbsp;&le;&nbsp;1,000. Both conditions were written down in advance.<span class="needs-cv"> The ceiling comparison came later.</span></p></div>
-
+<div class="step"><h3>One 80/20 split</h3><p>Train on 80&nbsp;% of the materials, score on the other 20&nbsp;%. One model, one score; only a fifth of the data is ever used for scoring.</p></div>
+<div class="step"><h3>Five 80/20 splits, averaged</h3><p>Repeat the split five times with different random 20&nbsp;% test sets and average the five scores. Five models; the test sets overlap, so some materials are scored several times and some never.</p></div>
+<div class="step"><h3>5-fold cross-validation</h3><p>Cut the data into five equal parts. Train on four, predict the fifth, and rotate until every part has been predicted once. Every material is predicted exactly once by a model that never saw it, and all the predictions are scored together. Five models, the same cost as five splits.</p></div>
 </div>
 
-<h3>Three things decide the question, and they are not the same</h3>
+<p>All three train each model on 80&nbsp;% of the data, so they all estimate the same thing: how well a probe trained on that much data does. They differ only in how they use the materials for scoring.</p>
+
+<h3>How they were compared</h3>
+<p>On real data the true score is unknown, so the test builds one. A frozen set of 20,000 materials (6,426 for bulk modulus) is kept out of everything. For each small dataset of <em>n</em> materials drawn from the rest, a probe trained on all <em>n</em> is scored on those 20,000: that is the <strong>true score</strong>, the one the small-data estimate is trying to guess. Each of the three methods then estimates it from the <em>n</em> materials alone. This is repeated on <span data-live="cvCells">90</span> combinations &mdash; two embeddings, nine properties, five dataset sizes from 100 to 2,000 materials &mdash; with 20 separate datasets each (fewer on bulk modulus above 500).</p>
+
 <div class="scroll"><table>
-<thead><tr><th></th><th>question</th><th>bad answer looks like</th></tr></thead>
+<thead><tr><th rowspan="2">method</th><th rowspan="2" class="num">models<br>trained</th><th colspan="2" class="num">typical error of the estimate</th><th colspan="2" class="num">its 95&nbsp;% interval contains</th></tr>
+<tr><th class="num">200 materials</th><th class="num">1,000 materials</th><th class="num">the true<br>score</th><th class="num">the expected score<br>at 80&nbsp;% of the data</th></tr></thead>
 <tbody>
-<tr><td><strong>estimator RMSE</strong></td><td>how far is the reported score from the truth about the model fitted on all n materials?</td><td>the number is off</td></tr>
-<tr><td><strong>coverage</strong></td><td>does the 95&nbsp;% interval contain that truth 95&nbsp;% of the time?</td><td>the number looks more settled than it is</td></tr>
-<tr><td><strong>distance from the ceiling</strong></td><td>how far is the reported score from what the embedding reaches on the full corpus?</td><td>the number understates the embedding</td></tr>
+<tr><td>one 80/20 split</td><td class="num">1</td><td class="num">0.093</td><td class="num">0.045</td><td class="num">0.88</td><td class="num">0.90</td></tr>
+<tr><td>five 80/20 splits, averaged</td><td class="num">5</td><td class="num">0.079</td><td class="num">0.025</td><td class="num">0.85</td><td class="num">0.87</td></tr>
+<tr><td>5-fold cross-validation</td><td class="num">5</td><td class="num">0.065</td><td class="num">0.023</td><td class="num">0.81</td><td class="num">0.88</td></tr>
 </tbody></table></div>
+<p class="sub">Typical error: the root-mean-square difference between the estimate and the true score, median over the combinations at that size (R&sup2; or macro-F1). The interval columns are averages over all 90 combinations; a well-calibrated 95&nbsp;% interval would read 0.95.</p>
 
-<p>The first two ask how well the estimate recovers the score of the model fitted on all n: its RMSE combines scatter with the low bias of fitting on 0.8n, and coverage asks whether the interval admits both. The third is the shortfall from the full-corpus score &mdash; the <em>bias</em> from training on a small dataset &mdash; and it is the one that answers &ldquo;how good is this embedding&rdquo;.</p>
-
-<p class="needs-cv"><strong>CV lowers estimator RMSE, covers below the required band, and changes total error against repeated holdout by a median of under 1&nbsp;%.</strong> The three do not move together: a narrower interval is an improvement only if it still contains the truth as often as it claims, and a lower estimator RMSE is worth little if the term it reduces is the smaller one. Each is checked separately below.</p>
-
-<p class="needs-cv">The third is where the practical answer lies, and it is set out after the per-cell results, since it needs both the noise figures below and the training-size curve from earlier on this page.</p>
-
-<div class="needs-cv">
-<h3>Accuracy: CV is better on average, not everywhere</h3>
+<h3>What the data supports</h3>
+<p><strong>Never rely on a single split.</strong> One 80/20 split is the least accurate of the three at every size, with roughly twice the error of the other two at 1,000 materials. Both alternatives beat it in almost every combination.</p>
+<p><strong>Cross-validation is a little more accurate than five averaged splits, at the same cost.</strong> It is closer to the true score in <span data-live="cvWin">84</span>&nbsp;% of the combinations, with a median <span data-live="cvGain">16.8</span>&nbsp;% lower error at 1,000 materials or fewer. The largest advantage is at 100 materials, where averaging five scores, each measured on only 20 materials, drags the estimate down: on energy above hull with ORB-v3 the five-split average sits 0.87 below the true score on average, and cross-validation 0.11. Scoring all predictions together avoids that.</p>
 <svg viewBox="0 0 700 250" role="img"><text transform="rotate(-90)" x="-110" y="11" text-anchor="middle" font-size="9.5" fill="var(--muted,#5B646E)">RMSE reduction vs repeated holdout</text><line x1="54" y1="196.0" x2="664" y2="196.0" style="stroke:var(--rule,#DDE1E4);stroke-width:1"/><text x="48" y="199.5" text-anchor="end" font-size="9" fill="var(--muted,#5B646E)" font-family="monospace">-20%</text><line x1="54" y1="153.0" x2="664" y2="153.0" style="stroke:var(--rule,#DDE1E4);stroke-width:1"/><text x="48" y="156.5" text-anchor="end" font-size="9" fill="var(--muted,#5B646E)" font-family="monospace">-3%</text><line x1="54" y1="110.0" x2="664" y2="110.0" style="stroke:var(--rule,#DDE1E4);stroke-width:1"/><text x="48" y="113.5" text-anchor="end" font-size="9" fill="var(--muted,#5B646E)" font-family="monospace">+15%</text><line x1="54" y1="67.0" x2="664" y2="67.0" style="stroke:var(--rule,#DDE1E4);stroke-width:1"/><text x="48" y="70.5" text-anchor="end" font-size="9" fill="var(--muted,#5B646E)" font-family="monospace">+32%</text><line x1="54" y1="24.0" x2="664" y2="24.0" style="stroke:var(--rule,#DDE1E4);stroke-width:1"/><text x="48" y="27.5" text-anchor="end" font-size="9" fill="var(--muted,#5B646E)" font-family="monospace">+50%</text><text x="202" y="242" text-anchor="middle" font-size="10" fill="var(--ink,#16191D)" font-family="monospace">ORB-v3 &#183; number of materials per dataset</text><text x="83.6" y="210" text-anchor="middle" font-size="8" fill="var(--muted,#5B646E)" font-family="monospace">100</text><rect x="70.3" y="77.7" width="26.6" height="69.2" style="fill:var(--orb,#1F6F6B);fill-opacity:0.85"/><text x="83.6" y="74.7" text-anchor="middle" font-size="8" fill="var(--muted,#5B646E)" font-family="monospace">+28%</text><text x="142.8" y="210" text-anchor="middle" font-size="8" fill="var(--muted,#5B646E)" font-family="monospace">200</text><rect x="129.5" y="111.0" width="26.6" height="35.9" style="fill:var(--orb,#1F6F6B);fill-opacity:0.85"/><text x="142.8" y="108.0" text-anchor="middle" font-size="8" fill="var(--muted,#5B646E)" font-family="monospace">+15%</text><text x="202.0" y="210" text-anchor="middle" font-size="8" fill="var(--muted,#5B646E)" font-family="monospace">500</text><rect x="188.7" y="111.6" width="26.6" height="35.2" style="fill:var(--orb,#1F6F6B);fill-opacity:0.85"/><text x="202.0" y="108.6" text-anchor="middle" font-size="8" fill="var(--muted,#5B646E)" font-family="monospace">+14%</text><text x="261.2" y="210" text-anchor="middle" font-size="8" fill="var(--muted,#5B646E)" font-family="monospace">1k</text><rect x="247.9" y="105.3" width="26.6" height="41.6" style="fill:var(--orb,#1F6F6B);fill-opacity:0.85"/><text x="261.2" y="102.3" text-anchor="middle" font-size="8" fill="var(--muted,#5B646E)" font-family="monospace">+17%</text><text x="320.4" y="210" text-anchor="middle" font-size="8" fill="var(--muted,#5B646E)" font-family="monospace">2k</text><rect x="307.1" y="122.8" width="26.6" height="24.0" style="fill:var(--orb,#1F6F6B);fill-opacity:0.85"/><text x="320.4" y="119.8" text-anchor="middle" font-size="8" fill="var(--muted,#5B646E)" font-family="monospace">+10%</text><line x1="54.0" y1="196" x2="350.0" y2="196" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="516" y="242" text-anchor="middle" font-size="10" fill="var(--ink,#16191D)" font-family="monospace">UMA-S &#183; number of materials per dataset</text><text x="397.6" y="210" text-anchor="middle" font-size="8" fill="var(--muted,#5B646E)" font-family="monospace">100</text><rect x="384.3" y="62.8" width="26.6" height="84.0" style="fill:var(--uma,#C2681A);fill-opacity:0.85"/><text x="397.6" y="59.8" text-anchor="middle" font-size="8" fill="var(--muted,#5B646E)" font-family="monospace">+34%</text><text x="456.8" y="210" text-anchor="middle" font-size="8" fill="var(--muted,#5B646E)" font-family="monospace">200</text><rect x="443.5" y="96.6" width="26.6" height="50.2" style="fill:var(--uma,#C2681A);fill-opacity:0.85"/><text x="456.8" y="93.6" text-anchor="middle" font-size="8" fill="var(--muted,#5B646E)" font-family="monospace">+20%</text><text x="516.0" y="210" text-anchor="middle" font-size="8" fill="var(--muted,#5B646E)" font-family="monospace">500</text><rect x="502.7" y="103.7" width="26.6" height="43.2" style="fill:var(--uma,#C2681A);fill-opacity:0.85"/><text x="516.0" y="100.7" text-anchor="middle" font-size="8" fill="var(--muted,#5B646E)" font-family="monospace">+18%</text><text x="575.2" y="210" text-anchor="middle" font-size="8" fill="var(--muted,#5B646E)" font-family="monospace">1k</text><rect x="561.9" y="117.7" width="26.6" height="29.1" style="fill:var(--uma,#C2681A);fill-opacity:0.85"/><text x="575.2" y="114.7" text-anchor="middle" font-size="8" fill="var(--muted,#5B646E)" font-family="monospace">+12%</text><text x="634.4" y="210" text-anchor="middle" font-size="8" fill="var(--muted,#5B646E)" font-family="monospace">2k</text><rect x="621.1" y="116.9" width="26.6" height="29.9" style="fill:var(--uma,#C2681A);fill-opacity:0.85"/><text x="634.4" y="113.9" text-anchor="middle" font-size="8" fill="var(--muted,#5B646E)" font-family="monospace">+12%</text><line x1="368.0" y1="196" x2="664.0" y2="196" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><line x1="54" y1="146.9" x2="664" y2="146.9" style="stroke:var(--ink,#16191D);stroke-width:1.2"/></svg>
-<p>Reduction in estimator RMSE against repeated holdout, averaged over targets at each dataset size. Median <strong><span data-live="cvGain6">16.8</span>&nbsp;%</strong> at n&nbsp;&le;&nbsp;1,000 &mdash; real, but under the 30&nbsp;% bar. The gain does not grow with dataset size the way a reader might assume &mdash; it is largest at n&nbsp;=&nbsp;100, where the estimate is worst anyway.</p>
-
-<h3>Coverage: neither interval holds its 95&nbsp;%</h3>
+<p><strong>None of the three intervals can be taken at face value.</strong> A 95&nbsp;% interval should contain the true score 95&nbsp;% of the time; these contain it 81&ndash;88&nbsp;% of the time. Part of the miss comes from the comparison itself: every method trains on 80&nbsp;% of the data and the true score uses all of it, so all three run slightly low. Measured against the expected score of a probe trained on 80&nbsp;% of the data, the intervals still contain it only 87&ndash;90&nbsp;% of the time. Cross-validation's interval is the narrowest, so it misses most often. Quote the spread measured on this page for the test size in hand, which is wider.</p>
 <svg viewBox="0 0 700 250" role="img"><text transform="rotate(-90)" x="-110" y="11" text-anchor="middle" font-size="9.5" fill="var(--muted,#5B646E)">coverage of the 95% interval</text><line x1="54" y1="196.0" x2="664" y2="196.0" style="stroke:var(--rule,#DDE1E4);stroke-width:1"/><text x="48" y="199.5" text-anchor="end" font-size="9" fill="var(--muted,#5B646E)" font-family="monospace">0.70</text><line x1="54" y1="153.0" x2="664" y2="153.0" style="stroke:var(--rule,#DDE1E4);stroke-width:1"/><text x="48" y="156.5" text-anchor="end" font-size="9" fill="var(--muted,#5B646E)" font-family="monospace">0.77</text><line x1="54" y1="110.0" x2="664" y2="110.0" style="stroke:var(--rule,#DDE1E4);stroke-width:1"/><text x="48" y="113.5" text-anchor="end" font-size="9" fill="var(--muted,#5B646E)" font-family="monospace">0.85</text><line x1="54" y1="67.0" x2="664" y2="67.0" style="stroke:var(--rule,#DDE1E4);stroke-width:1"/><text x="48" y="70.5" text-anchor="end" font-size="9" fill="var(--muted,#5B646E)" font-family="monospace">0.93</text><line x1="54" y1="24.0" x2="664" y2="24.0" style="stroke:var(--rule,#DDE1E4);stroke-width:1"/><text x="48" y="27.5" text-anchor="end" font-size="9" fill="var(--muted,#5B646E)" font-family="monospace">1.00</text><text x="202" y="242" text-anchor="middle" font-size="10" fill="var(--ink,#16191D)" font-family="monospace">ORB-v3 &#183; number of materials per dataset</text><text x="83.6" y="210" text-anchor="middle" font-size="8" fill="var(--muted,#5B646E)" font-family="monospace">100</text><circle cx="74.1" cy="110.0" r="3.2" style="fill:var(--ink,#16191D)"/><circle cx="93.1" cy="157.8" r="3.2" style="fill:var(--orb,#1F6F6B)"/><text x="142.8" y="210" text-anchor="middle" font-size="8" fill="var(--muted,#5B646E)" font-family="monospace">200</text><circle cx="133.3" cy="110.0" r="3.2" style="fill:var(--ink,#16191D)"/><circle cx="152.3" cy="148.2" r="3.2" style="fill:var(--orb,#1F6F6B)"/><text x="202.0" y="210" text-anchor="middle" font-size="8" fill="var(--muted,#5B646E)" font-family="monospace">500</text><circle cx="192.5" cy="134.4" r="3.2" style="fill:var(--ink,#16191D)"/><circle cx="211.5" cy="128.0" r="3.2" style="fill:var(--orb,#1F6F6B)"/><text x="261.2" y="210" text-anchor="middle" font-size="8" fill="var(--muted,#5B646E)" font-family="monospace">1k</text><circle cx="251.7" cy="111.1" r="3.2" style="fill:var(--ink,#16191D)"/><circle cx="270.7" cy="90.9" r="3.2" style="fill:var(--orb,#1F6F6B)"/><text x="320.4" y="210" text-anchor="middle" font-size="8" fill="var(--muted,#5B646E)" font-family="monospace">2k</text><circle cx="310.9" cy="113.2" r="3.2" style="fill:var(--ink,#16191D)"/><circle cx="329.9" cy="150.3" r="3.2" style="fill:var(--orb,#1F6F6B)"/><line x1="54.0" y1="196" x2="350.0" y2="196" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="516" y="242" text-anchor="middle" font-size="10" fill="var(--ink,#16191D)" font-family="monospace">UMA-S &#183; number of materials per dataset</text><text x="397.6" y="210" text-anchor="middle" font-size="8" fill="var(--muted,#5B646E)" font-family="monospace">100</text><circle cx="388.1" cy="81.3" r="3.2" style="fill:var(--ink,#16191D)"/><circle cx="407.1" cy="148.2" r="3.2" style="fill:var(--uma,#C2681A)"/><text x="456.8" y="210" text-anchor="middle" font-size="8" fill="var(--muted,#5B646E)" font-family="monospace">200</text><circle cx="447.3" cy="103.6" r="3.2" style="fill:var(--ink,#16191D)"/><circle cx="466.3" cy="132.3" r="3.2" style="fill:var(--uma,#C2681A)"/><text x="516.0" y="210" text-anchor="middle" font-size="8" fill="var(--muted,#5B646E)" font-family="monospace">500</text><circle cx="506.5" cy="123.8" r="3.2" style="fill:var(--ink,#16191D)"/><circle cx="525.5" cy="114.2" r="3.2" style="fill:var(--uma,#C2681A)"/><text x="575.2" y="210" text-anchor="middle" font-size="8" fill="var(--muted,#5B646E)" font-family="monospace">1k</text><circle cx="565.7" cy="113.2" r="3.2" style="fill:var(--ink,#16191D)"/><circle cx="584.7" cy="115.3" r="3.2" style="fill:var(--uma,#C2681A)"/><text x="634.4" y="210" text-anchor="middle" font-size="8" fill="var(--muted,#5B646E)" font-family="monospace">2k</text><circle cx="624.9" cy="90.9" r="3.2" style="fill:var(--ink,#16191D)"/><circle cx="643.9" cy="157.8" r="3.2" style="fill:var(--uma,#C2681A)"/><line x1="368.0" y1="196" x2="664.0" y2="196" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><line x1="54" y1="52.7" x2="664" y2="52.7" style="stroke:var(--ink,#16191D);stroke-width:1;stroke-dasharray:4 3"/></svg>
-<p>Each pair is one dataset size, averaged over targets: the t-interval over the five split scores that goes with repeated holdout, and the bootstrap over the pooled out-of-fold predictions that goes with CV. The dashed line is the 0.95 the interval promises. Every mean sits below it, and CV's is the lower of the pair at 100, 200 and 2,000 materials on both embeddings, and at 1,000 on UMA-S.</p>
-
-<div class="call warn">
-<p>Across all nine targets, <span data-live="cvCells">90</span> cells, CV covers at <strong><span data-live="cvCov">0.808</span></strong> on average, against repeated holdout's <span data-live="rhCov">0.851</span> and a single split's <span data-live="hoCov">0.880</span>; <span data-live="cvLow">61</span>, <span data-live="rhLow">49</span> and <span data-live="hoLow">41</span> of the <span data-live="cvCells">90</span> cells fall below 0.90. All three averages are below the [0.90, 0.98] band the decision rule asks for, so <strong>cross-validation does not meet the coverage condition</strong>. The accuracy gain falls short as well: a median <span data-live="cvGain5">16.8</span>&nbsp;% reduction at n&nbsp;&le;&nbsp;1,000 over those nine targets, against the 30&nbsp;% bar. CV is closer to the truth in <span data-live="cvWin4">84</span>&nbsp;% of cells, so the gain is consistent; it is too small to clear the bar.</p>
-<p>All three estimates are biased low, which accounts for about half of CV's under-coverage and less of the other two's. Every estimator fits on 0.8n, and the truth is the probe fitted on all n, so the mean error is negative on all nine targets for all three estimators, on both embeddings. The size of that error differs between them: repeated holdout's mean error is larger in magnitude than CV's in 61 of the 90 cells, and on energy above hull at 100 materials on ORB-v3 it is &minus;0.87 against CV's &minus;0.11. Each interval is centred on that low estimate, and most misses leave the truth above it: 283 of CV's 317 misses, 191 of repeated holdout's 261 and 169 of the single split's 215. Shifting every interval up by the size of its cell's mean error raises average coverage from 0.81 to 0.88 for CV and from 0.88 to 0.91 for a single split; repeated holdout's rises only from 0.85 to 0.87, so its t-interval is also too narrow for the scatter of its estimate. CV's interval is the narrowest of the three in 88 of the 90 cells, and its coverage falls as the bias grows: 0.88 in the 16 cells where the bias is under a quarter of the draw-to-draw standard deviation of the error, 0.76 in the 40 where it is half or more.</p>
-<p>CV clears neither bar.</p>
-</div>
 
 <div class="cvx">
   <div class="cvx-strip">
-    <div class="cvx-stat"><span class="k">CV closer in</span><span class="v" data-live="cvWin3">84 %</span></div>
-    <div class="cvx-stat"><span class="k">median gain, n &le; 1,000</span><span class="v" data-live="cvGain3">16.8 %</span></div>
-    <div class="cvx-stat"><span class="k">mean coverage, CV</span><span class="v" data-live="cvCov3">0.808</span></div>
-    <div class="cvx-stat"><span class="k">mean coverage, repeated holdout</span><span class="v" data-live="rhCov3">0.851</span></div>
-    <div class="cvx-stat"><span class="k">CV cells below 0.90</span><span class="v" data-live="cvLow3">61</span></div>
+    <div class="cvx-stat"><span class="k">CV closer than five splits in</span><span class="v" data-live="cvWin3">84 %</span></div>
+    <div class="cvx-stat"><span class="k">median error cut, n &le; 1,000</span><span class="v" data-live="cvGain3">16.8 %</span></div>
     <div class="cvx-stat"><span class="k">cells</span><span class="v" data-live="cvCells3">90</span></div>
   </div>
   <div class="ctl">
@@ -1619,6 +1561,21 @@ cells &mdash; and under the 30&nbsp;% bar.</p>
   </div>
   <p class="sfx-cap" id="cvxCap"></p>
 </div>
+
+<h3>What it does not change</h3>
+<p>Cross-validation makes the estimate of a small-data probe's score more accurate. It does not make that score closer to what the same embedding reaches on the full corpus, because every one of its models still trains on 80&nbsp;% of the data. For an embedding comparison, that distance is usually the larger error: in the budget below, the noise cross-validation removes is small next to it.</p>
+<p class="sub">Band gap, ORB-v3. Bias is the shortfall from the full-corpus score at 80&nbsp;% of the data; noise is the spread of each method's error across datasets; total combines the two.</p>
+<div class="scroll"><table>
+<thead><tr><th class="num">materials</th><th class="num">bias</th><th class="num">noise: 1 split</th><th class="num">5 splits</th><th class="num">CV</th><th class="num">total: 1 split</th><th class="num">5 splits</th><th class="num">CV</th></tr></thead>
+<tbody>
+<tr><td class="num">100</td><td class="num">0.501</td><td class="num">0.562</td><td class="num">0.154</td><td class="num">0.141</td><td class="num">0.753</td><td class="num">0.524</td><td class="num">0.520</td></tr>
+<tr><td class="num">200</td><td class="num">0.371</td><td class="num">0.096</td><td class="num">0.080</td><td class="num">0.051</td><td class="num">0.384</td><td class="num">0.380</td><td class="num">0.375</td></tr>
+<tr><td class="num">500</td><td class="num">0.245</td><td class="num">0.073</td><td class="num">0.032</td><td class="num">0.027</td><td class="num">0.256</td><td class="num">0.247</td><td class="num">0.247</td></tr>
+<tr><td class="num">1,000</td><td class="num">0.176</td><td class="num">0.067</td><td class="num">0.026</td><td class="num">0.035</td><td class="num">0.188</td><td class="num">0.178</td><td class="num">0.179</td></tr>
+<tr><td class="num">2,000</td><td class="num">0.123</td><td class="num">0.020</td><td class="num">0.015</td><td class="num">0.011</td><td class="num">0.125</td><td class="num">0.124</td><td class="num">0.124</td></tr>
+</tbody></table></div>
+<p>At <span data-live="budN">2,000</span> materials cross-validation cuts the noise from <span data-live="budNoise1">0.020</span> (one split) to <span data-live="budNoiseCv">0.011</span>, and the total from <span data-live="budTot1">0.125</span> to <span data-live="budTotCv">0.124</span>, because the bias of <span data-live="budBias">0.123</span> dominates.</p>
+
 <details class="every"><summary>Full data &mdash; band gap, repeated holdout and CV at every dataset size</summary><div class="inner">
 <p class="sub">Shortfall is the distance from the full-corpus score at the training size each arm uses, 0.8n.</p>
 <div class="scroll"><table>
@@ -1637,32 +1594,20 @@ cells &mdash; and under the 30&nbsp;% bar.</p>
 </tbody></table></div>
 <p>CV has the lower RMSE in <span data-live="bgWin">9</span> of <span data-live="bgCells">10</span> cells; its coverage is below 0.90 in <span data-live="bgCvLow">6</span> of the <span data-live="bgCells">10</span>, and repeated holdout's in <span data-live="bgRhLow">4</span>. Draws are 20 at every n. The shortfall column is the same quantity for both arms, since both train on 0.8n.</p></div></details>
 
-<h3>Distance from the ceiling: where the gain mostly disappears</h3>
-<p>The reduction above is in <em>estimator RMSE</em>, which is not the whole error. 5-fold CV fits each model on 0.8n &mdash; the same as an 80/20 holdout &mdash; so it leaves the shortfall from training on 0.8n where it was. The budget below holds that term fixed for all three estimators and varies only their noise.</p>
-<p class="sub">Band gap, ORB-v3. Bias is the shortfall from the full-corpus score at 0.8n; noise is the standard deviation of each estimate's error across draws; total is the two in quadrature.</p>
-<div class="scroll"><table>
-<thead><tr><th class="num">materials</th><th class="num">bias</th><th class="num">noise: 1 split</th><th class="num">5 splits</th><th class="num">CV</th><th class="num">total: 1 split</th><th class="num">5 splits</th><th class="num">CV</th></tr></thead>
-<tbody>
-<tr><td class="num">100</td><td class="num">0.501</td><td class="num">0.562</td><td class="num">0.154</td><td class="num">0.141</td><td class="num">0.753</td><td class="num">0.524</td><td class="num">0.520</td></tr>
-<tr><td class="num">200</td><td class="num">0.371</td><td class="num">0.096</td><td class="num">0.080</td><td class="num">0.051</td><td class="num">0.384</td><td class="num">0.380</td><td class="num">0.375</td></tr>
-<tr><td class="num">500</td><td class="num">0.245</td><td class="num">0.073</td><td class="num">0.032</td><td class="num">0.027</td><td class="num">0.256</td><td class="num">0.247</td><td class="num">0.247</td></tr>
-<tr><td class="num">1,000</td><td class="num">0.176</td><td class="num">0.067</td><td class="num">0.026</td><td class="num">0.035</td><td class="num">0.188</td><td class="num">0.178</td><td class="num">0.179</td></tr>
-<tr><td class="num">2,000</td><td class="num">0.123</td><td class="num">0.020</td><td class="num">0.015</td><td class="num">0.011</td><td class="num">0.125</td><td class="num">0.124</td><td class="num">0.124</td></tr>
-</tbody></table></div>
-<p>At <span data-live="budN">2,000</span> materials CV cuts noise from <span data-live="budNoise1">0.020</span> to <span data-live="budNoiseCv">0.011</span> and total error from <span data-live="budTot1">0.125</span> to <span data-live="budTotCv">0.124</span> &mdash; about <span data-live="budTotPct">1</span>&nbsp;%. Added in quadrature against a bias of <span data-live="budBias">0.123</span>, a <span data-live="budNoisePct">43</span>&nbsp;% noise improvement disappears.</p>
-<p>Distance from the ceiling is set by training size. An 80/20 split has lower total error than an even one because the even one reduces training data; CV changes total error little because it leaves training size unchanged. Against repeated holdout, every adjustment other than training size acts on the smaller term in 85 of the 90 cells; the exceptions are energy above hull and magnetic density at 100 materials on both embeddings and energy above hull at 200 on UMA-S, where CV cuts total error by 21&ndash;59&nbsp;%.</p>
-<p class="why">This treats distance from the ceiling as error, which corresponds to reading a small-n score as a floor on the embedding's capability. Measured against the score achievable with the data in hand, the shortfall from the ceiling drops out, and what remains is the estimator RMSE and coverage above: CV is closer in <span data-live="cvWin2">84</span>&nbsp;% of cells, by a median <span data-live="cvGain2">16.8</span>&nbsp;% at n&nbsp;&le;&nbsp;1,000, and its interval covers <span data-live="cvCov">0.808</span> on average.</p>
+<div class="call">
+<p><strong>On small datasets, score with 5-fold cross-validation or five averaged splits, never one split; cross-validation is the slightly more accurate of the two at the same cost.</strong> Neither moves the score closer to the full-corpus value, and neither's 95&nbsp;% interval should be quoted as it stands.</p>
 </div>
 
-<div class="limits needs-cv">
+<div class="limits">
 <span class="tag">what this does not settle</span>
 <ul>
-<li>Every target runs at 20 draws except bulk modulus, whose pool supplies 12, 6 and 3 at 500, 1,000 and 2,000 materials, so its per-cell coverage is noisier.</li>
-<li>The comparison uses a frozen 20,000-material reference (6,426 on bulk modulus) and stops at 2,000 materials per dataset; larger datasets are not measured.</li>
-<li><strong>Cost is not the argument.</strong> Five folds is five fits, the same as five
-repeated splits. Cross-validation is rejected on its coverage and on the size of what it buys.</li>
+<li>Each combination rests on 20 datasets, so its own interval-coverage figure is uncertain by about &plusmn;0.05; the averages over 90 combinations are firmer.</li>
+<li>Only the XGBoost probe, only 5 folds, and only datasets of 100 to 2,000 materials were tested.</li>
+<li>Bulk modulus has fewer datasets above 500 materials (12, 6 and 3 at 500, 1,000 and 2,000) because its pool runs out.</li>
 </ul>
 </div>
+</div>
+
 <h2 id="conclusion">Conclusion</h2>
 <p>Three properties of a score follow from the split sizes, and the first two are independent:</p>
 <div class="scroll"><table>
@@ -1685,7 +1630,7 @@ where composition alone is ahead of ORB-v3 and, from 2,000 to 10,000 training ma
 and near its ceiling and still owe everything to the formula, so the gain over composition
 has to be reported beside the shortfall, per target, to say whether it does.</p>
 
-<p><strong>The regime that keeps total error within 0.005 of the minimum at every size from 500 materials up is an 80/20 split<span class="needs-cv">, repeated five times, with no cross-validation</span>.</strong><span class="needs-cv"> The t-interval over those five scores contains the truth in <span data-live="rhCov">0.851</span> of draws on average against a nominal 0.95, so its width understates the uncertainty.</span> The best fraction drifts toward training data as the dataset grows &mdash; 80/20 has the lowest median total error at 500 and 5,000 materials, and 90/10 edges it by 0.001&ndash;0.004 at the other sizes from 1,000 up &mdash; but from 1,000 materials up 90/10, 80/20 and 70/30 sit within 0.01 of each other, so an 80/20 split, with a wider test fraction when a dataset is small, covers the measured range.</p>
+<p><strong>The regime that keeps total error within 0.005 of the minimum at every size from 500 materials up is an 80/20 split<span class="needs-cv">, scored on small datasets by 5-fold cross-validation or five averaged splits, never one</span>.</strong><span class="needs-cv"> None of the three methods' 95&nbsp;% intervals holds its coverage, so the spread measured on this page is the better guide to how much a score would move.</span> The best fraction drifts toward training data as the dataset grows &mdash; 80/20 has the lowest median total error at 500 and 5,000 materials, and 90/10 edges it by 0.001&ndash;0.004 at the other sizes from 1,000 up &mdash; but from 1,000 materials up 90/10, 80/20 and 70/30 sit within 0.01 of each other, so an 80/20 split, with a wider test fraction when a dataset is small, covers the measured range.</p>
 
 <p><strong>The floors are 5,000 training and 500 test materials &mdash; at 80/20 the training floor takes 6,250 materials in total, which puts 1,250 in the test set.</strong> Neither curve has a natural cut, so the floors are set by how much data it is reasonable to demand, and a single property can need far less or far more: its own floors are in its row of the table above.</p>
 
@@ -2263,10 +2208,8 @@ var REDUCED = !!(window.matchMedia &&
     $("cvxChart").innerHTML = o.join("");
 
     var c = cells().filter(function(r){ return r.red != null; }), win = c.filter(function(r){ return r.red>0; }).length;
-    var over = c.filter(function(r){ return r.red>=0.30; }).length;
-    $("cvxCap").innerHTML = ({orb:"ORB-v3", uma:"UMA-S"})[E]+": cross-validation is closer in <b>"+win+
-      "</b> of <b>"+c.length+"</b> cells, and clears the 30&nbsp;% bar in <b>"+over+
-      "</b>; its coverage is below 0.90 in <b>"+cells().filter(function(r){ return r.cv_cov != null && r.cv_cov < 0.90; }).length+
+    $("cvxCap").innerHTML = ({orb:"ORB-v3", uma:"UMA-S"})[E]+": cross-validation is closer than five averaged splits in <b>"+win+
+      "</b> of <b>"+c.length+"</b> cells; its interval's coverage is below 0.90 in <b>"+cells().filter(function(r){ return r.cv_cov != null && r.cv_cov < 0.90; }).length+
       "</b>. Hover any point for its numbers.";
   }
 

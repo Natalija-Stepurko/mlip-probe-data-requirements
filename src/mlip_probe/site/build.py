@@ -28,6 +28,7 @@ def blocks(results: Results) -> dict[str, str]:
         "fig_gain": figures.grid(results, "gain"),
         "fig_gainmap": figures.gainmap(results),
         "fig_percell": figures.percell(results, 5000),
+        "tbl_cv_overview": tables.cv_overview(results),
         "fig_cv_gain": figures.cv_gain(results),
         "fig_cv_coverage": figures.cv_coverage(results),
         "tbl_design_train": tables.design_example(results, "train"),

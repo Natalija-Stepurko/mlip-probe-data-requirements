@@ -321,3 +321,45 @@ def floor_strip(results: Results) -> str:
              ("median spread there", f"{te[TEST_FLOOR].median():.3f} (&plusmn;{te[TEST_FLOOR].median() / 2:.3f})"),
              ("materials at 80/20", f"{round(TRAIN_FLOOR / (1 - TEST_FRACTION)):,}")]
     return "".join(f'<div class="cvx-stat"><span class="k">{k}</span><span class="v">{v}</span></div>' for k, v in stats)
+
+
+ESTIMATORS = (("single", "one 80/20 split", 1), ("repeated", "five 80/20 splits, averaged", 5),
+              ("cv", "5-fold cross-validation", 5))
+
+
+def _cv_draws(results: Results) -> pd.DataFrame:
+    """Every cross-validation draw of both embeddings, with the expected score of a probe trained on
+    0.8n (the training curve's median, log-interpolated), the quantity every estimator fits for."""
+    frames = []
+    for arm in EMBEDDINGS:
+        path = results.indir / "raw" / f"cv_vs_holdout_{arm}.csv"
+        if not path.exists():
+            continue
+        d = pd.read_csv(path)
+        d["target"] = d["target"].str.replace("/", "_per_")
+        curve = {t: g.sort_values("n") for t, g in results.curve(arm, "train").groupby("target")}
+        d["expected"] = [float(np.interp(np.log(0.8 * n), np.log(curve[t].n), curve[t]["median"]))
+                         for t, n in zip(d.target, d.n)]
+        frames.append(d.assign(arm=arm))
+    return pd.concat(frames) if frames else pd.DataFrame()
+
+
+def cv_overview(results: Results, sizes=(200, 1000)) -> str:
+    """Per estimator: fits, typical error against the true score (median over cells of the RMSE) at
+    two dataset sizes, and how often its 95 % interval contains the true score, averaged over cells."""
+    d = _cv_draws(results)
+    if d.empty:
+        return ""
+    d = d[d.lo.notna()].copy()
+    d["in_true"] = (d.lo <= d.truth) & (d.truth <= d.hi)
+    d["in_expected"] = (d.lo <= d.expected) & (d.expected <= d.hi)
+    cell = d.groupby(["arm", "target", "n", "estimator"]).agg(
+        rmse=("error", lambda e: float(np.sqrt((e ** 2).mean()))), in_true=("in_true", "mean"),
+        in_expected=("in_expected", "mean")).reset_index()
+    rows = []
+    for key, name, fits in ESTIMATORS:
+        c = cell[cell.estimator == key]
+        err = "".join(f'<td class="num">{c[c.n == n].rmse.median():.3f}</td>' for n in sizes)
+        rows.append(f'<tr><td>{name}</td><td class="num">{fits}</td>{err}'
+                    f'<td class="num">{c.in_true.mean():.2f}</td><td class="num">{c.in_expected.mean():.2f}</td></tr>')
+    return "\n".join(rows)
