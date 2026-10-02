@@ -198,7 +198,7 @@ def gainmap(results: Results) -> str:
                f'font-size="9.5" fill="{MUTED}">number of training materials</text>')
     legend = [(f"fill:{ORB}", "ORB-v3 ahead on ≥ 90 % of draws"), (f"fill:{UMA}", "UMA-S ahead on ≥ 90 % of draws"),
               (f"fill:{MAG}", "composition ahead on ≥ 90 % of draws"),
-              (f"fill:{PANEL};stroke:{AXIS};stroke-width:1.2", "draws disagree on the sign")]
+              (f"fill:{PANEL};stroke:{AXIS};stroke-width:1.2", "no clear winner")]
     for i, (style, text) in enumerate(legend):
         x = 24 + (i % 2) * 300
         yb = HM - 20 + (i // 2) * 14
