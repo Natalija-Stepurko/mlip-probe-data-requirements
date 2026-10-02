@@ -307,3 +307,17 @@ def floor_by_target(results: Results) -> str:
     rows = [f'<tr><td>{label(t)}</td><td class="num">{cell(t, "n_saturated")}</td>'
             f'<td class="num">{cell(t, "test_n_stable")}</td></tr>' for t in ordered(set(th.target))]
     return "\n".join(rows)
+
+
+def floor_strip(results: Results) -> str:
+    """The headline numbers of the two floors, for the stat strip above the floor figures."""
+    tr = _per_target(results, "train", "gap").drop(index="bulk_modulus", errors="ignore")
+    te = _per_target(results, "test", "spread")
+    if tr.empty or te.empty:
+        return ""
+    stats = [("training floor", f"{TRAIN_FLOOR:,}"),
+             ("median shortfall there", f"{tr[TRAIN_FLOOR].median():.3f}"),
+             ("test floor", f"{TEST_FLOOR:,}"),
+             ("median spread there", f"{te[TEST_FLOOR].median():.3f} (&plusmn;{te[TEST_FLOOR].median() / 2:.3f})"),
+             ("materials at 80/20", f"{round(TRAIN_FLOOR / (1 - TEST_FRACTION)):,}")]
+    return "".join(f'<div class="cvx-stat"><span class="k">{k}</span><span class="v">{v}</span></div>' for k, v in stats)

@@ -51,6 +51,13 @@ tbody tr:last-child td{border-bottom:none}
 tr.settled td:not([rowspan]){background:color-mix(in srgb,var(--hl,var(--axis)) 10%,var(--panel))}
 tr.settled .num:last-child{font-weight:700;color:var(--hl,var(--ink))}
 table.gain-sum th,table.gain-sum td{padding:6px 10px}
+table.compact th,table.compact td{padding:6px 10px}
+.grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.floor-box .grid{margin-top:4px}
+.floor-cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 28px;align-items:start}
+.floor-cols h3{margin-top:18px}
+@media (max-width:860px){.floor-cols{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:560px){.grid-2{grid-template-columns:minmax(0,1fr)}}
 tr.hl-orb{--hl:var(--orb)} tr.hl-uma{--hl:var(--uma)} tr.hl-magpie{--hl:var(--mag)}
 .call{border-left:3px solid var(--orb);background:#EEF3F3;padding:16px 22px;margin:22px 0;
   border-radius:0 3px 3px 0}
@@ -597,16 +604,40 @@ materials formation energy is essentially at its ceiling, while crystal system i
 <h2 id="floor">Choosing the floors</h2>
 <p class="sub">Two floors, one per axis: a training size read off the shortfall, and a test size read off the spread. XGBoost, each target the mean of ORB-v3 and UMA-S.</p>
 
+<div class="cvx floor-box">
+  <div class="cvx-strip"><!--{{floor_strip}}--></div>
+  <p class="keyline"><span class="key"><i class="kc" style="background:var(--ink)"></i>median across targets</span><span class="key"><i class="kb" style="background:var(--ink)"></i>band: middle half of targets</span><span class="key"><i class="kd"></i>dashed: spread of 0.05</span><span class="key"><i class="kd" style="border-top-style:dotted;border-color:var(--ink)"></i>dotted: the floor</span></p>
+  <div class="grid grid-2"><!--{{fig_floors}}--></div>
+</div>
+
+<div class="floor-cols">
+<div>
 <h3>Training floor: 5,000 materials</h3>
 <p>The shortfall is how far a score sits below the same probe's full-corpus score. It falls at every step of the grid:</p>
-<div class="scroll"><table>
-<thead><tr><th class="num">training materials</th><th class="num">median shortfall</th><th class="num">range across targets</th><th class="num">materials at 80/20</th></tr></thead>
+<div class="scroll"><table class="compact">
+<thead><tr><th class="num">training<br>materials</th><th class="num">median<br>shortfall</th><th class="num">range across<br>targets</th><th class="num">materials<br>at 80/20</th></tr></thead>
 <tbody>
 <!--{{tbl_floor_train}}-->
 </tbody></table></div>
-<p>Median and range over the eight targets measured at every size; bulk modulus is left out because its corpus stops the curve at 5,000. The highlighted row is the floor. ORB-v3 and UMA-S agree to within 0.029 at every size, and within 0.01 on all targets except energy above hull, where the gap is 0.013&ndash;0.029, and magnetic density at 5,000, where it is 0.011; both rank the targets in nearly the same order (rank correlation 0.88&ndash;0.93), so which targets need more data is a property of the task and not of either one.</p>
-
+<p>Median and range over the eight targets measured at every size; bulk modulus is left out because its corpus stops the curve at 5,000. The highlighted row is the floor.</p>
 <p>There is no knee. Up to 2,000 the median target is more than 0.10 short, so a score there is mainly a lower bound. From 5,000 to 20,000 each step buys 0.011&ndash;0.014 of shortfall and costs progressively more data &mdash; 40&nbsp;% more materials for the first step, then 43&nbsp;%, then 100&nbsp;%. The floor sits at 5,000, where the median target is 0.058 short; it is set by how much data it is reasonable to demand.</p>
+</div>
+<div>
+<h3>Test floor: 500 materials</h3>
+<p>The spread is how far a score moves when the test set is re-drawn: the p10&ndash;p90 width over 200 re-drawn test sets, scored with one probe trained on 20,000 materials.</p>
+<div class="scroll"><table class="compact">
+<thead><tr><th class="num">test<br>materials</th><th class="num">median<br>spread</th><th class="num">range across<br>targets</th><th class="num">&plusmn; on<br>one score</th></tr></thead>
+<tbody>
+<!--{{tbl_floor_test}}-->
+</tbody></table></div>
+<p>Median and range over every target measured at that size; bulk modulus stops at 5,000, and the 20,000 point is the whole test set, a single score with no spread. The highlighted row is the floor.</p>
+
+<p>500 is the smallest size on the grid at which the median target's spread is under 0.05, about &plusmn;0.023 on one score. At 200 it is 0.078 (&plusmn;0.039), and the hardest target, magnetic density, moves by 0.189. Like the shortfall, the spread has no knee: it more than halves from 200 to 1,000 and keeps falling. At an 80/20 split the training floor already brings 1,250 test materials, above the test floor, so the test floor matters for smaller datasets and for other splits.</p>
+</div>
+</div>
+
+<p>ORB-v3 and UMA-S agree to within 0.029 at every size, and within 0.01 on all targets except energy above hull, where the gap is 0.013&ndash;0.029, and magnetic density at 5,000, where it is 0.011; both rank the targets in nearly the same order (rank correlation 0.88&ndash;0.93), so which targets need more data is a property of the task and not of either one.</p>
+
 
 <h3>Raising the floor does not fix the target that needs fixing</h3>
 <div class="scroll"><table>
@@ -619,17 +650,6 @@ materials formation energy is essentially at its ceiling, while crystal system i
 
 <p>The span across targets widens with training data. Crystal system at 20,000 is still 0.048 short &mdash; worse than formation energy is at 5,000, on four times the data. A floor set high enough to bring crystal system within 0.05 of its ceiling would be 20,000, the largest size measured, and still leave the easy targets paying for it.</p>
 
-<h3>Test floor: 500 materials</h3>
-<p>The spread is how far a score moves when the test set is re-drawn: the p10&ndash;p90 width over 200 re-drawn test sets, scored with one probe trained on 20,000 materials.</p>
-<div class="scroll"><table>
-<thead><tr><th class="num">test materials</th><th class="num">median spread</th><th class="num">range across targets</th><th class="num">&plusmn; on one score</th></tr></thead>
-<tbody>
-<!--{{tbl_floor_test}}-->
-</tbody></table></div>
-<p>Median and range over every target measured at that size; bulk modulus stops at 5,000, and the 20,000 point is the whole test set, a single score with no spread. The highlighted row is the floor.</p>
-
-<p>500 is the smallest size on the grid at which the median target's spread is under 0.05, about &plusmn;0.023 on one score. At 200 it is 0.078 (&plusmn;0.039), and the hardest target, magnetic density, moves by 0.189. Like the shortfall, the spread has no knee: it more than halves from 200 to 1,000 and keeps falling. At an 80/20 split the training floor already brings 1,250 test materials, above the test floor, so the test floor matters for smaller datasets and for other splits.</p>
-
 <h3>Floors for one property</h3>
 <p>Both floors describe the median target, and the targets differ by an order of magnitude on both axes. Anyone interested in a single property should set the floors from its own row:</p>
 <div class="scroll"><table>
@@ -641,7 +661,7 @@ materials formation energy is essentially at its ceiling, while crystal system i
 
 <div class="call">
 <p><strong>The floors are 5,000 training and 500 test materials. At 80/20 the training floor takes 6,250 materials in total, which puts 1,250 in the test set.</strong></p>
-<p class="why">Neither curve has a natural cut. Both floors were chosen <em>after</em> seeing the curves, as the smallest sizes at which the median target's shortfall is small enough to report and its spread is under 0.05. They are judgements about what is reasonable to ask for.<span class="needs-cv"> The 30&nbsp;% bar and the coverage band in the next section were written down before the run.</span></p>
+<p class="why">Neither curve has a natural cut. Both floors were chosen <em>after</em> seeing the curves, as the smallest sizes at which the median target's shortfall is small enough to report and its spread is under 0.05. They are judgements about what is reasonable to ask for.</p>
 </div>
 
 <p>A score below the training floor is not worthless &mdash; it is a lower bound, and should be reported as one, with its per-target shortfall beside it. Below the test floor it is noisier, and should be reported with its spread. Buying 0.011 of shortfall for another 2,500 materials is a trade for the reader to make.</p>

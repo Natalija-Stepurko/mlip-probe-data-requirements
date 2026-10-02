@@ -60,9 +60,9 @@ def _scales(ns: Sequence[float], lo: float, hi: float) -> tuple[Callable, Callab
 
 
 def panel(title: str, curves: list[dict], ns: Sequence[int], xlabel: str = "", ylabel: str = "",
-          zero: bool = False) -> str:
+          zero: bool = False, vline: int | None = None) -> str:
     """One figure. `curves`: dicts with colour, n, median, p10, p90, ceiling (or None).
-    With `zero`, a solid line marks y = 0."""
+    With `zero`, a solid line marks y = 0; with `vline`, a dashed line marks that size as the floor."""
     vals = [v for c in curves for v in list(c["p10"]) + list(c["p90"])
             + ([c["ceiling"]] if c["ceiling"] is not None else [])]
     vals = [v for v in vals if not math.isnan(v)]
@@ -89,6 +89,12 @@ def panel(title: str, curves: list[dict], ns: Sequence[int], xlabel: str = "", y
         y = sy(c["ceiling"])
         out.append(f'<line x1="{X0:.0f}" y1="{y:.1f}" x2="{X1:.0f}" y2="{y:.1f}" '
                    f'style="stroke:{c["colour"]};stroke-width:1.2;stroke-dasharray:4 3;opacity:0.9"/>')
+    if vline is not None:
+        x = sx(vline)
+        out.append(f'<line x1="{x:.1f}" y1="{Y0:.0f}" x2="{x:.1f}" y2="{Y1:.0f}" '
+                   f'style="stroke:{INK};stroke-width:1;stroke-dasharray:2 3"/>'
+                   f'<text x="{x + 4:.1f}" y="{Y0 + 8:.0f}" font-size="8.5" fill="{INK}" '
+                   f'font-family="monospace">floor {_fmt_n(vline)}</text>')
     for c in curves:
         xs = [sx(n) for n in c["n"]]
         band = ([f"{x:.1f},{sy(v):.1f}" for x, v in zip(xs, c["p90"])]
@@ -334,3 +340,24 @@ def cv_coverage(results: Results) -> str:
     y = _cy(NOMINAL, lo, hi)
     return svg.replace("</svg>", f'<line x1="{CX0}" y1="{y:.1f}" x2="{CX1}" y2="{y:.1f}" '
                                  f'style="stroke:{INK};stroke-width:1;stroke-dasharray:4 3"/></svg>')
+
+
+def floor_panels(results: Results) -> str:
+    """Median across targets of the shortfall (training axis) and of the spread (test axis), the middle
+    half of targets shaded, each floor marked. Bulk modulus is left out of the training axis."""
+    from .tables import TEST_FLOOR, TRAIN_FLOOR, _per_target
+    out = []
+    for axis, col, floor, title, xlabel, ylabel, threshold in (
+            ("train", "gap", TRAIN_FLOOR, "training floor", "number of training materials", "shortfall from ceiling", None),
+            ("test", "spread", TEST_FLOOR, "test floor", "number of test materials", "spread (p10\u2013p90)", 0.05)):
+        d = _per_target(results, axis, col)
+        if d.empty:
+            return ""
+        if axis == "train":
+            d = d.drop(index="bulk_modulus", errors="ignore")
+        d = d.loc[:, d.notna().any()]
+        ns = [int(n) for n in d.columns]
+        curve = dict(colour=INK, n=ns, median=list(d.median()), p10=list(d.quantile(0.25)),
+                     p90=list(d.quantile(0.75)), ceiling=threshold)
+        out.append(panel(title, [curve], ns, xlabel, ylabel, vline=floor))
+    return "".join(out)

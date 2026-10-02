@@ -38,6 +38,8 @@ def blocks(results: Results) -> dict[str, str]:
         "tbl_gain_full": tables.gain_full(results),
         "tbl_split_median": tables.split_median(results),
         "tbl_split_wins": tables.split_wins(results),
+        "floor_strip": tables.floor_strip(results),
+        "fig_floors": figures.floor_panels(results),
         "tbl_floor_train": tables.training_floor(results),
         "tbl_floor_test": tables.test_floor(results),
         "tbl_floor_by_target": tables.floor_by_target(results),
