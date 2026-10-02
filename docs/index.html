@@ -238,7 +238,7 @@ h2{scroll-margin-top:66px}
 <li><a href="#per-target">Per&nbsp;target</a></li>
 <li><a href="#composition">Composition</a></li>
 <li><a href="#split">Split</a></li>
-<li><a href="#floor">Floor</a></li>
+<li><a href="#floor">Floors</a></li>
 <li><a href="#cv">CV</a></li>
 <li><a href="#conclusion">Conclusion</a></li>
 </ul></div></nav>
@@ -1395,23 +1395,28 @@ materials formation energy is essentially at its ceiling, while crystal system i
 <p><strong>Shortfall costs more than spread at every dataset size from 500 up, so the minimum sits on the training side of an even split.</strong> 80/20 beats 50/50 in <span data-live="win500">15</span> of <span data-live="cells">18</span> cells at 500 materials, 16 at 1,000 and 2,000, and every cell from 5,000 up. 80/20 has the lowest median total error at 500 and 5,000; at 1,000 and 2,000 90/10 edges it by 0.004 and 0.001 while 80/20 wins more cells, 9 to 3 and 8 to 6; at 10,000 and 20,000 90/10 is lower by 0.003 and 0.002 and the cells split 11 to 5 for 80/20 and 8 to 8. At 200 materials the median minimum is 70/30 and 80/20 beats the even split in only 9 of 18 &mdash; but 200 is far below the floor this page settles on.</p>
 </div>
 
-<h2 id="floor">Choosing the floor</h2>
-<p class="sub">A sweep at 5,000 / 7,000 / 10,000 / 20,000, 10 disjoint draws at 5,000 (1 for bulk modulus), 7 at 7,000 and 10,000, and 6 at 20,000, run to decide the floor on training size.</p>
+<h2 id="floor">Choosing the floors</h2>
+<p class="sub">Two floors, one per axis: a training size read off the shortfall, and a test size read off the spread. XGBoost, each target the mean of ORB-v3 and UMA-S.</p>
 
-<p>A floor has to be a single number, and the shortfall it is drawn from is not. What the sweep asks is whether any size in this range is a natural place to put it.</p>
-
+<h3>Training floor: 5,000 materials</h3>
+<p>The shortfall is how far a score sits below the same probe's full-corpus score. It falls at every step of the grid:</p>
 <div class="scroll"><table>
-<thead><tr><th>n train</th><th class="num">5,000</th><th class="num">7,000</th><th class="num">10,000</th><th class="num">20,000</th></tr></thead>
+<thead><tr><th class="num">training materials</th><th class="num">median shortfall</th><th class="num">range across targets</th><th class="num">materials at 80/20</th></tr></thead>
 <tbody>
-<tr><td>shortfall</td><td class="num">0.061</td><td class="num">0.050</td><td class="num">0.040</td><td class="num">0.023</td></tr>
-<tr><td>bought by the step</td><td class="num">&mdash;</td><td class="num">0.010</td><td class="num">0.010</td><td class="num">0.016</td></tr>
-<tr><td>materials required</td><td class="num">6,250</td><td class="num">8,750</td><td class="num">12,500</td><td class="num">25,000</td></tr>
-<!-- pooled over 8 targets -->
+<tr><td class="num">50</td><td class="num">0.487</td><td class="num">0.151&ndash;0.787</td><td class="num">62</td></tr>
+<tr><td class="num">100</td><td class="num">0.386</td><td class="num">0.108&ndash;0.535</td><td class="num">125</td></tr>
+<tr><td class="num">200</td><td class="num">0.317</td><td class="num">0.083&ndash;0.417</td><td class="num">250</td></tr>
+<tr><td class="num">500</td><td class="num">0.214</td><td class="num">0.057&ndash;0.287</td><td class="num">625</td></tr>
+<tr><td class="num">1,000</td><td class="num">0.150</td><td class="num">0.045&ndash;0.228</td><td class="num">1,250</td></tr>
+<tr><td class="num">2,000</td><td class="num">0.105</td><td class="num">0.033&ndash;0.187</td><td class="num">2,500</td></tr>
+<tr class="settled"><td class="num">5,000</td><td class="num">0.058</td><td class="num">0.017&ndash;0.128</td><td class="num">6,250</td></tr>
+<tr><td class="num">7,000</td><td class="num">0.047</td><td class="num">0.013&ndash;0.110</td><td class="num">8,750</td></tr>
+<tr><td class="num">10,000</td><td class="num">0.035</td><td class="num">0.010&ndash;0.090</td><td class="num">12,500</td></tr>
+<tr><td class="num">20,000</td><td class="num">0.021</td><td class="num">0.006&ndash;0.050</td><td class="num">25,000</td></tr>
 </tbody></table></div>
+<p>Median and range over the eight targets measured at every size; bulk modulus is left out because its corpus stops the curve at 5,000. The highlighted row is the floor. ORB-v3 and UMA-S agree to within 0.029 at every size, and within 0.01 on all targets except energy above hull, where the gap is 0.013&ndash;0.029, and magnetic density at 5,000, where it is 0.011; both rank the targets in nearly the same order (rank correlation 0.88&ndash;0.93), so which targets need more data is a property of the task and not of either one.</p>
 
-<p>Mean over the eight targets measured at every size, both embeddings, XGBoost. Bulk modulus is left out of the mean because its corpus stops the sweep at 5,000. ORB-v3 and UMA-S agree to within 0.029 at every size, and within 0.01 on all targets except energy above hull, where the gap is 0.013&ndash;0.029, and magnetic density at 5,000, where it is 0.011; both rank the targets in nearly the same order (rank correlation 0.88&ndash;0.93), so which targets need more data is a property of the task and not of either one. Materials required assume an 80/20 split.</p>
-
-<p>There is no knee. Each step buys 0.010&ndash;0.016 of shortfall and costs progressively more data &mdash; 40&nbsp;% more materials for the first step, then 43&nbsp;%, then 100&nbsp;%. Nothing in the curve distinguishes 7,000 or 10,000 from 5,000, so the floor is set by how much data it is reasonable to demand.</p>
+<p>There is no knee. Up to 2,000 the median target is more than 0.10 short, so a score there is mainly a lower bound. From 5,000 to 20,000 each step buys 0.011&ndash;0.014 of shortfall and costs progressively more data &mdash; 40&nbsp;% more materials for the first step, then 43&nbsp;%, then 100&nbsp;%. The floor sits at 5,000, where the median target is 0.058 short; it is set by how much data it is reasonable to demand.</p>
 
 <h3>Raising the floor does not fix the target that needs fixing</h3>
 <div class="scroll"><table>
@@ -1433,18 +1438,49 @@ materials formation energy is essentially at its ceiling, while crystal system i
 
 <p>The span across targets widens with training data. Crystal system at 20,000 is still 0.048 short &mdash; worse than formation energy is at 5,000, on four times the data. A floor set high enough to bring crystal system within 0.05 of its ceiling would be 20,000, the largest size measured, and still leave the easy targets paying for it.</p>
 
+<h3>Test floor: 500 materials</h3>
+<p>The spread is how far a score moves when the test set is re-drawn: the p10&ndash;p90 width over 200 re-drawn test sets, scored with one probe trained on 20,000 materials.</p>
+<div class="scroll"><table>
+<thead><tr><th class="num">test materials</th><th class="num">median spread</th><th class="num">range across targets</th><th class="num">&plusmn; on one score</th></tr></thead>
+<tbody>
+<tr><td class="num">20</td><td class="num">0.250</td><td class="num">0.033&ndash;4.140</td><td class="num">&plusmn;0.125</td></tr>
+<tr><td class="num">50</td><td class="num">0.125</td><td class="num">0.028&ndash;0.507</td><td class="num">&plusmn;0.063</td></tr>
+<tr><td class="num">100</td><td class="num">0.107</td><td class="num">0.020&ndash;0.300</td><td class="num">&plusmn;0.053</td></tr>
+<tr><td class="num">200</td><td class="num">0.078</td><td class="num">0.015&ndash;0.189</td><td class="num">&plusmn;0.039</td></tr>
+<tr class="settled"><td class="num">500</td><td class="num">0.046</td><td class="num">0.012&ndash;0.117</td><td class="num">&plusmn;0.023</td></tr>
+<tr><td class="num">1,000</td><td class="num">0.032</td><td class="num">0.011&ndash;0.080</td><td class="num">&plusmn;0.016</td></tr>
+<tr><td class="num">2,000</td><td class="num">0.020</td><td class="num">0.007&ndash;0.059</td><td class="num">&plusmn;0.010</td></tr>
+<tr><td class="num">5,000</td><td class="num">0.009</td><td class="num">0.005&ndash;0.034</td><td class="num">&plusmn;0.005</td></tr>
+<tr><td class="num">10,000</td><td class="num">0.008</td><td class="num">0.003&ndash;0.019</td><td class="num">&plusmn;0.004</td></tr>
+</tbody></table></div>
+<p>Median and range over every target measured at that size; bulk modulus stops at 5,000, and the 20,000 point is the whole test set, a single score with no spread. The highlighted row is the floor.</p>
+
+<p>500 is the smallest size on the grid at which the median target's spread is under 0.05, about &plusmn;0.023 on one score. At 200 it is 0.078 (&plusmn;0.039), and the hardest target, magnetic density, moves by 0.189. Like the shortfall, the spread has no knee: it more than halves from 200 to 1,000 and keeps falling. At an 80/20 split the training floor already brings 1,250 test materials, above the test floor, so the test floor matters for smaller datasets and for other splits.</p>
+
+<h3>Floors for one property</h3>
+<p>Both floors describe the median target, and the targets differ by an order of magnitude on both axes. Anyone interested in a single property should set the floors from its own row:</p>
+<div class="scroll"><table>
+<thead><tr><th>target</th><th class="num">within 0.05 of its ceiling from<br>(training materials, ORB-v3 / UMA-S)</th><th class="num">spread at most 0.05 from<br>(test materials, ORB-v3 / UMA-S)</th></tr></thead>
+<tbody>
+<tr><td>formation energy / atom</td><td class="num">2,000 / 1,000</td><td class="num">20 / 20</td></tr>
+<tr><td>energy above hull</td><td class="num">10,000 / 5,000</td><td class="num">1,000 / 1,000</td></tr>
+<tr><td>band gap</td><td class="num">7,000 / 7,000</td><td class="num">5,000 / 5,000</td></tr>
+<tr><td>density</td><td class="num">7,000 / 7,000</td><td class="num">200 / 200</td></tr>
+<tr><td>magnetic density</td><td class="num">20,000&dagger; / 20,000&dagger;</td><td class="num">5,000 / 5,000</td></tr>
+<tr><td>bulk modulus</td><td class="num">2,000 / 2,000</td><td class="num">500 / 500</td></tr>
+<tr><td>crystal system</td><td class="num">20,000&dagger; / 20,000&dagger;</td><td class="num">1,000 / 1,000</td></tr>
+<tr><td>metal / insulator</td><td class="num">1,000 / 1,000</td><td class="num">500 / 500</td></tr>
+<tr><td>magnetic / not</td><td class="num">5,000 / 2,000</td><td class="num">500 / 500</td></tr>
+</tbody></table></div>
+<p>&dagger; reached only at the largest training size measured for that target. For formation energy alone, 2,000 training materials (1,000 with UMA-S) bring the score within 0.05 of its ceiling, and 20 test materials already hold its spread at or below 0.05. Band gap needs 7,000 training and 5,000 test materials. Crystal system and magnetic density reach their ceilings only at 20,000, the largest size measured, and magnetic density also needs 5,000 test materials.</p>
+
 <div class="call">
-<p><strong>The floor is 5,000 training and 200 test materials &mdash; at 80/20 the training floor takes 6,250 materials in
-total, which puts 1,250 in the test set.</strong></p>
-<p class="why">The sweep showed no natural cut between 5,000 and 20,000. This floor was
-chosen <em>after</em> seeing that curve, as the smallest size at which the shortfall is small enough to report. It is a judgement about what is
-reasonable to ask for.<span class="needs-cv"> The 30&nbsp;% bar and the coverage band in the next section were
-written down before the run.</span></p>
+<p><strong>The floors are 5,000 training and 500 test materials. At 80/20 the training floor takes 6,250 materials in total, which puts 1,250 in the test set.</strong></p>
+<p class="why">Neither curve has a natural cut. Both floors were chosen <em>after</em> seeing the curves, as the smallest sizes at which the median target's shortfall is small enough to report and its spread is under 0.05. They are judgements about what is reasonable to ask for.<span class="needs-cv"> The 30&nbsp;% bar and the coverage band in the next section were written down before the run.</span></p>
 </div>
 
-<p>A score below this floor is not worthless &mdash; it is a lower bound, and should be
-reported as one, with its per-target shortfall beside it. Buying 0.010 of shortfall for
-another 2,500 materials is a trade for the reader to make.</p>
+<p>A score below the training floor is not worthless &mdash; it is a lower bound, and should be reported as one, with its per-target shortfall beside it. Below the test floor it is noisier, and should be reported with its spread. Buying 0.011 of shortfall for another 2,500 materials is a trade for the reader to make.</p>
+
 <h2 id="cv">Cross-validation against repeated holdout</h2>
 <div class="call warn cv-pending"><p>The cross-validation comparison has not been run to completion yet; its results will appear here.</p></div>
 <p class="sub needs-cv">Cross-validation is the more accurate estimator here and still does not change the answer: it cuts estimator RMSE by a median <span data-live="cvGain4">16.8</span>&nbsp;% at n&nbsp;&le;&nbsp;1,000 and is closer to the truth in <span data-live="cvWin4">84</span>&nbsp;% of cells, but its intervals contain the truth less often on average than either holdout's, and against repeated holdout total error falls by a median of under 1&nbsp;%, because every fold still trains on 80&nbsp;% and the shortfall is the larger term in 85 of the 90 cells.</p><div class="rule-box">
@@ -1617,7 +1653,7 @@ repeated splits. Cross-validation is rejected on its coverage and on the size of
 <tr><td><strong>gain over composition</strong> &mdash; what the embedding adds to the formula</td><td class="num">set by n_train and the target</td><td>resolvable from <span data-live="gainEarlyMaxN">500</span> training materials or fewer on <span data-live="gainEarlyCount">6</span> targets, from <span data-live="densityResolved">2,000</span> on density, never on magnetic density</td></tr>
 </tbody></table></div>
 
-<p>At a given dataset size the first two trade off against each other through the split, and neither is fixed by the dataset size alone &mdash; both are set by where the split is put. A score from 5,000 training and 200 test materials reproduces to about &plusmn;<span data-live="half200">0.040</span> and sits about <span data-live="gap5k">0.061</span> below the full-corpus value. Both hold simultaneously: the number moves by that much on a re-split and it is a lower bound.</p>
+<p>At a given dataset size the first two trade off against each other through the split, and neither is fixed by the dataset size alone &mdash; both are set by where the split is put. A score from 5,000 training and 500 test materials reproduces to about &plusmn;<span data-live="half500">0.024</span> and sits about <span data-live="gap5k">0.061</span> below the full-corpus value. Both hold simultaneously: the number moves by that much on a re-split and it is a lower bound.</p>
 
 <p>The second one has to be reported per target because it does not summarise. At 5,000 training materials formation energy is <span data-live="gapEasy">0.017</span> short and crystal system <span data-live="gapHard">0.128</span>, and the span widens with training data. No single number of materials stands in for it: the shortfall differs about five- to ninefold between the easiest and hardest target at every size.</p>
 
@@ -1631,7 +1667,7 @@ has to be reported beside the shortfall, per target, to say whether it does.</p>
 
 <p><strong>The regime that keeps total error within 0.005 of the minimum at every size from 500 materials up is an 80/20 split<span class="needs-cv">, repeated five times, with no cross-validation</span>.</strong><span class="needs-cv"> The t-interval over those five scores contains the truth in <span data-live="rhCov">0.851</span> of draws on average against a nominal 0.95, so its width understates the uncertainty.</span> The best fraction drifts toward training data as the dataset grows &mdash; 80/20 has the lowest median total error at 500 and 5,000 materials, and 90/10 edges it by 0.001&ndash;0.004 at the other sizes from 1,000 up &mdash; but from 1,000 materials up 90/10, 80/20 and 70/30 sit within 0.01 of each other, so an 80/20 split, with a wider test fraction when a dataset is small, covers the measured range.</p>
 
-<p><strong>The floor is 5,000 training and 200 test materials &mdash; at 80/20 the training floor takes 6,250 materials in total, which puts 1,250 in the test set.</strong> No size between 5,000 and 20,000 is a natural cut, so the floor is set by how much data it is reasonable to demand.</p>
+<p><strong>The floors are 5,000 training and 500 test materials &mdash; at 80/20 the training floor takes 6,250 materials in total, which puts 1,250 in the test set.</strong> Neither curve has a natural cut, so the floors are set by how much data it is reasonable to demand, and a single property can need far less or far more: its own floors are in its row of the table above.</p>
 
 <h2>References</h2>
 <ol class="refs">
@@ -1674,7 +1710,22 @@ var $ = function(id){ return document.getElementById(id); };
 var fmt = function(n){ return n.toLocaleString("en-US"); };
 var SIX = DATA.targets, LAB = DATA.labels;
 
+// "overall": the median across targets at each size, for the shortfall (training axis) and the
+// spread (test axis). Bulk modulus is left out of the training axis because it stops at 5,000.
+var OVERALL = "overall", OVERALL_ROWS = {};
+function overallRows(kind, emb){
+  var key = kind + emb;
+  if (OVERALL_ROWS[key]) return OVERALL_ROWS[key];
+  var col = kind === "train" ? "gap" : "spread", by = {};
+  DATA[kind][emb].forEach(function(r){
+    if (r[col] === null || (kind === "train" && r.target === "bulk_modulus")) return;
+    (by[r.n] = by[r.n] || []).push(r[col]);
+  });
+  return OVERALL_ROWS[key] = Object.keys(by).map(Number).sort(function(a,b){ return a-b; })
+    .map(function(n){ var r = {target:OVERALL, n:n}; r[col] = median(by[n]); return r; });
+}
 function rows(kind, emb, target){
+  if (target === OVERALL) return overallRows(kind, emb);
   return DATA[kind][emb].filter(function(r){ return r.target === target && (kind !== "test" || r.spread !== null); })
                         .sort(function(a,b){ return a.n - b.n; });
 }
@@ -1696,6 +1747,15 @@ function interp(pts, key, x){
 }
 // The spread curve is measured on the 20,000-material test-axis probe and scaled as though that probe were at its ceiling; a probe scoring lower scatters more.
 function errors(emb, target, nTrain, nTest){
+  if (target === OVERALL){
+    // No single score or ceiling across targets: the measured spread enters the budget unscaled.
+    var otr = rows("train", emb, target), ote = rows("test", emb, target);
+    if (nTrain > otr[otr.length-1].n || nTest > ote[ote.length-1].n)
+      return {score:NaN, shortfall:NaN, spread:NaN, rescaled:NaN, sd:NaN, total:NaN, ceiling:NaN, overall:true};
+    var osh = interp(otr, "gap", nTrain), osp = interp(ote, "spread", nTest), osd = osp / SD_PER_SPREAD;
+    return {score:NaN, shortfall:osh, spread:osp, rescaled:osp, sd:osd, total:Math.hypot(osh, osd),
+            ceiling:NaN, overall:true};
+  }
   var tr = rows("train", emb, target), te = rows("test", emb, target),
       c = ceil_(emb, target),
       score = interp(tr, "median", nTrain),
@@ -1857,6 +1917,9 @@ var REDUCED = !!(window.matchMedia &&
   var emb = "orb", tgt = "band_gap";
 
   var sel = $("tTarget");
+  var oo = document.createElement("option");
+  oo.value = OVERALL; oo.textContent = "overall (median across targets)";
+  sel.appendChild(oo);
   SIX.forEach(function(t){
     var o = document.createElement("option");
     o.value = t; o.textContent = LAB[t]; if (t === tgt) o.selected = true;
@@ -1885,7 +1948,7 @@ var REDUCED = !!(window.matchMedia &&
     var g = grid(), n = current(), e = errors(emb, tgt, n.tr, n.te);
     $("oTrain").textContent = fmt(n.tr);
     $("oTest").textContent  = fmt(n.te);
-    $("vScore").textContent  = e.score.toFixed(3);
+    $("vScore").textContent  = e.overall ? "\u2013" : e.score.toFixed(3);
     $("vShort").textContent  = e.shortfall.toFixed(3);
     $("vSpread").textContent = e.spread.toFixed(3);
     $("vTotal").textContent  = e.total.toFixed(3);
@@ -1896,7 +1959,7 @@ var REDUCED = !!(window.matchMedia &&
     $("segS").style.width = sPct.toFixed(1)+"%";
     $("segP").style.width = (100-sPct).toFixed(1)+"%";
 
-    var unit = DATA.metric[tgt];
+    var unit = e.overall ? "R\u00b2 or macro-F1" : DATA.metric[tgt];
     // Two independent gradients: how far the score moves on a re-split, and how far it
     // sits below the full corpus. Each gets a band, because the quantities are
     // continuous.
@@ -1923,6 +1986,11 @@ var REDUCED = !!(window.matchMedia &&
     w.innerHTML = lead + tail;
 
     // Where the score sits between zero and this embedding's full-corpus value.
+    if (e.overall){
+      $("ceilFill").style.width = "0%";
+      $("ceilCap").textContent = "median across targets: there is no single score or ceiling";
+      return;
+    }
     var frac = Math.max(0, Math.min(1, e.score / e.ceiling));
     $("ceilFill").style.width = (frac*100).toFixed(1)+"%";
     $("ceilCap").textContent = e.score.toFixed(3) + " of " + e.ceiling.toFixed(3) +

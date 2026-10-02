@@ -7,8 +7,10 @@ authored in the template next to the prose that describes the columns).
     gain_full()         every target, embedding and size of the paired difference
     split_median()      total error per dataset size and split fraction, median over cells
     split_wins()        which fraction wins each cell
-    shortfall_by_size_pooled()    shortfall at 5,000 / 7,000 / 10,000 / 20,000, mean over dense targets
-    shortfall_by_size_targets()   the same per target
+    training_floor()    shortfall at every training size: median and range across targets
+    test_floor()        spread at every test size: median and range across targets
+    floor_by_target()   per target, the training and test size each property needs on its own
+    shortfall_by_size_targets()   shortfall per target at 5,000 / 7,000 / 10,000 / 20,000
     cv_target(target)   the three estimators at every dataset size for one target
     cv_budget(target)   bias and noise per estimator, added in quadrature
 """
@@ -23,6 +25,7 @@ from .targets import label, ordered
 
 LARGE_SIZES = [5000, 7000, 10000, 20000]
 TEST_FRACTION = 0.2
+TRAIN_FLOOR, TEST_FLOOR = 5000, 500   # the page's recommended floors, highlighted in the floor tables
 
 
 def _n(n) -> str:
@@ -186,21 +189,6 @@ def _gaps(results: Results) -> pd.DataFrame:
     return d.groupby(["target", "n"]).gap.mean().unstack("n")
 
 
-def shortfall_by_size_pooled(results: Results) -> str:
-    g = _gaps(results)
-    if g.empty:
-        return ""
-    g = g.reindex(columns=LARGE_SIZES).dropna()
-    if g.empty:
-        return ""
-    mean = g.mean()
-    steps = ["&mdash;"] + [f"{mean[a] - mean[b]:.3f}" for a, b in zip(LARGE_SIZES, LARGE_SIZES[1:])]
-    rows = ["<tr><td>shortfall</td>" + "".join(f'<td class="num">{mean[n]:.3f}</td>' for n in LARGE_SIZES) + "</tr>",
-            "<tr><td>bought by the step</td>" + "".join(f'<td class="num">{x}</td>' for x in steps) + "</tr>",
-            "<tr><td>materials required</td>" + "".join(f'<td class="num">{round(n / (1 - TEST_FRACTION)):,}</td>'
-                                                      for n in LARGE_SIZES) + "</tr>"]
-    return "\n".join(rows) + f"\n<!-- pooled over {len(g)} targets -->"
-
 
 def shortfall_by_size_targets(results: Results) -> str:
     g = _gaps(results)
@@ -255,4 +243,67 @@ def cv_budget(results: Results, target: str = "band_gap", arm: str = "orb") -> s
         rows.append(f'<tr><td class="num">{_n(r.n)}</td><td class="num">{_f(bias)}</td>'
                     + "".join(f'<td class="num">{_f(x)}</td>' for x in noise)
                     + "".join(f'<td class="num">{_f(x)}</td>' for x in tot) + "</tr>")
+    return "\n".join(rows)
+
+
+def _per_target(results: Results, axis: str, col: str) -> pd.DataFrame:
+    """`col` of the XGBoost curves, mean of the two embeddings, one row per target and one column per size."""
+    frames = [f for f in (results.curve(e, axis) for e in EMBEDDINGS) if len(f)]
+    if not frames:
+        return pd.DataFrame()
+    return pd.concat(frames).groupby(["target", "n"])[col].mean().unstack("n")
+
+
+def _floor_rows(d: pd.DataFrame, floor: int, extra) -> str:
+    rows = []
+    for n in d.columns:
+        v = d[n].dropna()
+        if v.empty:
+            continue
+        cls = ' class="settled"' if n == floor else ""
+        rows.append(f'<tr{cls}><td class="num">{_n(n)}</td><td class="num">{v.median():.3f}</td>'
+                    f'<td class="num">{v.min():.3f}&ndash;{v.max():.3f}</td>{extra(n, v)}</tr>')
+    return "\n".join(rows)
+
+
+def training_floor(results: Results) -> str:
+    """Shortfall below the full-corpus score at every training size, over the eight targets measured at
+    every size (bulk modulus stops at 5,000)."""
+    d = _per_target(results, "train", "gap")
+    if d.empty:
+        return ""
+    d = d.drop(index="bulk_modulus", errors="ignore").dropna()
+    return _floor_rows(d, TRAIN_FLOOR,
+                       lambda n, v: f'<td class="num">{round(n / (1 - TEST_FRACTION)):,}</td>')
+
+
+def test_floor(results: Results) -> str:
+    """Spread of the score across re-drawn test sets at every test size, over every target measured there."""
+    d = _per_target(results, "test", "spread")
+    if d.empty:
+        return ""
+    return _floor_rows(d, TEST_FLOOR, lambda n, v: f'<td class="num">&plusmn;{v.median() / 2:.3f}</td>')
+
+
+def floor_by_target(results: Results) -> str:
+    """Per target: the training size from which the score stays within 0.05 of its ceiling, and the test
+    size from which its spread stays at or below 0.05, ORB-v3 / UMA-S, from thresholds.csv."""
+    th = results.thresholds
+    if not len(th):
+        return ""
+    th = th[th.method == "xgboost"]
+
+    def cell(t, col):
+        vals = []
+        for e in EMBEDDINGS:
+            r = th[(th.arm == e) & (th.target == t)]
+            if r.empty or pd.isna(r[col].iloc[0]):
+                vals.append("not reached" if col == "n_saturated" else "&mdash;")
+                continue
+            n = int(r[col].iloc[0])
+            last = col == "n_saturated" and n == int(r["n_train_max"].iloc[0])
+            vals.append(f"{n:,}{'&dagger;' if last else ''}")
+        return " / ".join(vals)
+    rows = [f'<tr><td>{label(t)}</td><td class="num">{cell(t, "n_saturated")}</td>'
+            f'<td class="num">{cell(t, "test_n_stable")}</td></tr>' for t in ordered(set(th.target))]
     return "\n".join(rows)
