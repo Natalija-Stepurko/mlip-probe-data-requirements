@@ -47,8 +47,10 @@ th{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:u
 td[rowspan]{vertical-align:top;font-weight:600;border-right:1px solid var(--rule)}
 tbody tr:last-child td{border-bottom:none}
 .num{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right}
-tr.settled{background:#EEF3F3}
-tr.settled .num:last-child{font-weight:700;color:var(--orb)}
+/* highlighted rows take the colour of the model they belong to; pooled rows stay neutral */
+tr.settled{background:color-mix(in srgb,var(--hl,var(--axis)) 10%,var(--panel))}
+tr.settled .num:last-child{font-weight:700;color:var(--hl,var(--ink))}
+tr.hl-orb{--hl:var(--orb)} tr.hl-uma{--hl:var(--uma)} tr.hl-magpie{--hl:var(--mag)}
 .call{border-left:3px solid var(--orb);background:#EEF3F3;padding:16px 22px;margin:22px 0;
   border-radius:0 3px 3px 0}
 .call.warn{border-left-color:var(--uma);background:#FAF2EA}

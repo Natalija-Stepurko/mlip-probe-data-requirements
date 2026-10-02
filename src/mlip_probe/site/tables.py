@@ -61,7 +61,7 @@ def settle(results: Results, axis: str) -> str:
             stable_n = _stable_n(results, arm, target, axis)
             first = True
             for r in g.itertuples():
-                cls = ' class="settled"' if r.n == stable_n else ""
+                cls = f' class="settled hl-{arm}"' if r.n == stable_n else ""
                 head = (f'<td rowspan="{len(g)}">{label(target)}</td><td rowspan="{len(g)}">{ARM_LABEL[arm]}</td>'
                         if first else "")
                 first = False
@@ -120,7 +120,7 @@ def gain_full(results: Results) -> str:
             for r in grp.itertuples():
                 head = f'<td rowspan="{len(grp)}">{label(t)}</td><td rowspan="{len(grp)}">{ARM_LABEL[e]}</td>' if first else ""
                 first = False
-                cls = ' class="settled"' if r.p10 > 0 else ""
+                cls = f' class="settled hl-{e}"' if r.p10 > 0 else ""
                 rows.append(f'<tr{cls}>{head}<td class="num">{_n(r.n)}</td><td class="num">{int(r.k)}</td>'
                             f'<td class="num">{r.med:+.3f}</td><td class="num">{r.p10:+.3f}</td>'
                             f'<td class="num">{r.p90:+.3f}</td><td class="num">{100 * r.win:.0f}&nbsp;%</td></tr>')
