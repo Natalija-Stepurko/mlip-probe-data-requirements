@@ -754,7 +754,7 @@ materials formation energy is essentially at its ceiling, while crystal system i
     </div>
   </div>
   <div style="position:relative">
-    <svg id="cvxChart" viewBox="0 0 700 420" role="img" aria-label="cross-validation against five averaged splits, per target and dataset size"></svg>
+    <svg id="cvxChart" viewBox="0 0 700 470" role="img" aria-label="cross-validation against five averaged splits, per target and dataset size"></svg>
     <div class="cvx-tip" id="cvxTip"></div>
   </div>
   <p class="sfx-cap" id="cvxCap"></p>
@@ -1291,7 +1291,7 @@ var REDUCED = !!(window.matchMedia &&
 // ---- element 3: cross-validation cell explorer -----------------------------
 (function(){
   var E = "orb", M = "red";
-  var W = 700, H = 420, X0 = 168, X1 = 648, Y0 = 26, Y1 = 384;
+  var W = 700, H = 470, X0 = 168, X1 = 648, Y0 = 62, Y1 = 420;
   var NOMINAL = 0.95;
 
   function cells(){ return (DATA.cv || {})[E] || []; }
@@ -1364,10 +1364,26 @@ var REDUCED = !!(window.matchMedia &&
     });
     o.push('<line x1="'+X0+'" y1="'+Y1+'" x2="'+X1+'" y2="'+Y1+
            '" style="stroke:var(--axis);stroke-width:1"/>');
-    o.push('<text x="12" y="'+(H-6)+'" font-size="9.5" fill="var(--muted)">'+
-           (isCov ? 'x: share of datasets inside the 95 % interval &#183; coloured: cross-validation &#183; grey: five averaged splits &#183; dashed: 0.95'
-                  : 'x: error cut vs five averaged splits &#183; filled: cross-validation closer &#183; hollow: further &#183; sizes '+fmt(NS[0])+' (top) to '+fmt(NS[NS.length-1])+' in each row')+
-           '</text>');
+    // x-axis label, centred under the ticks
+    o.push('<text x="'+((X0+X1)/2).toFixed(0)+'" y="'+(Y1+36)+'" text-anchor="middle" font-size="10" fill="var(--ink)">'+
+           (isCov ? "share of datasets whose 95 % interval contains the reference score"
+                  : "error cut: how much smaller cross-validation's error is than five averaged splits'")+'</text>');
+    // legend, above the plot: the real symbols, then the order of the dots in each row
+    var lg = [], lx = X0, ly = 18;
+    function item(sym, label){ lg.push(sym(lx, ly)); lg.push('<text x="'+(lx+14)+'" y="'+(ly+3.5)+'" font-size="10" fill="var(--ink)">'+label+'</text>');
+                               lx += 14 + label.length*5.4 + 22; }
+    var dot = function(fill, stroke){ return function(x0, y0){ return '<circle cx="'+(x0+4)+'" cy="'+y0+'" r="3.6" style="fill:'+fill+';stroke:'+stroke+';stroke-width:1.4"/>'; }; };
+    if (isCov){
+      item(dot("var(--accent3)", "var(--accent3)"), "5-fold cross-validation");
+      item(dot("var(--muted)", "var(--muted)"), "five averaged 80/20 splits");
+      item(function(x0, y0){ return '<line x1="'+x0+'" y1="'+y0+'" x2="'+(x0+10)+'" y2="'+y0+'" style="stroke:var(--ink);stroke-width:1;stroke-dasharray:3 2"/>'; }, "0.95, the promised coverage");
+    } else {
+      item(dot("var(--accent3)", "var(--accent3)"), "cross-validation closer than five averaged splits");
+      item(dot("var(--panel)", "var(--accent3)"), "further away");
+    }
+    o = o.concat(lg);
+    o.push('<text x="'+X0+'" y="'+(ly+20)+'" font-size="9.5" fill="var(--muted)">Each row has one dot per dataset size, top to bottom: '+
+           NS.slice(0, -1).map(fmt).join(", ")+" and "+fmt(NS[NS.length-1])+' materials.</text>');
     o.push('<text transform="rotate(-90)" x="'+(-(Y0+Y1)/2).toFixed(0)+'" y="12" text-anchor="middle" '+
            'font-size="9.5" fill="var(--muted)">target</text>');
     $("cvxChart").innerHTML = o.join("");
