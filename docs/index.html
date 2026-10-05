@@ -1,4 +1,4 @@
-<title>Choosing a train/test regime under limited data</title>
+<title>Trustworthy benchmarks under limited data</title>
 <style>
 /* ---- theme tokens ------------------------------------------------------- */
 :root{
@@ -242,30 +242,40 @@ h2{scroll-margin-top:66px}
 <nav class="topnav"><div class="inner">
 <span class="brand">train / test under limited data</span>
 <ul>
+<li><a href="#questions">Questions</a></li>
 <li><a href="#calc">Calculator</a></li>
-<li><a href="#design">Design</a></li>
-<li><a href="#training">Training</a></li>
-<li><a href="#test">Test</a></li>
-<li><a href="#per-target">Per&nbsp;target</a></li>
-<li><a href="#composition">Composition</a></li>
+<li><a href="#design">Methods</a></li>
+<li><a href="#training">1&nbsp;Training</a></li>
+<li><a href="#test">2&nbsp;Testing</a></li>
 <li><a href="#split">Split</a></li>
-<li><a href="#floor">Floors</a></li>
-<li><a href="#cv">CV</a></li>
+<li><a href="#composition">3&nbsp;Composition</a></li>
+<li><a href="#cv">4&nbsp;CV</a></li>
 <li><a href="#conclusion">Conclusion</a></li>
 </ul></div></nav>
 <div class="wrap">
 <header>
 <p class="eyebrow">Companion to Stepurko,&nbsp;N. &amp; Laulainen,&nbsp;J. (2026), <em>Out-of-training properties in frozen interatomic potential embeddings are decodable and ordered by physical scale</em> &mdash; accepted at the AI4Sci and AI4Mat workshops, NeurIPS 2026. The paper is released in November 2026; the code and result tables behind this page are at <a href="https://github.com/Natalija-Stepurko/mlip-probe-data-requirements">mlip-probe-data-requirements</a>.</p>
-<h1>Choosing a train/test regime when data is limited</h1>
-<p class="lede">A probe trained on a few hundred materials gets a score. That score
-carries two errors that are usually conflated. The <strong>shortfall</strong> is how far
-it sits below what the same probe reaches on more data; it is set by training size and
-always points down. The <strong>spread</strong> is how far it moves when the split is
-redrawn; it is set by test size. This page measures the two separately, on frozen ORB-v3 and UMA-S embeddings over nine Materials Project properties, with
-composition-only Magpie features run on the same draws as a baseline, and uses the result
-to decide how much data is enough, where to put the split,<span class="needs-cv"> whether cross-validation is
-worth it,</span> and from how many materials an embedding's score says more than the formula.</p>
+<h1>When is a representation benchmark trustworthy under limited data?</h1>
+<p class="lede">An empirical study of how many labelled materials a probe on a frozen machine-learned interatomic potential needs before its score can be trusted: how far it sits below what more data would give, how much it moves with the test set, and how much of it the chemical formula alone explains.</p>
 </header>
+
+<h2 id="questions">Three questions behind every small-data benchmark</h2>
+<p class="sub">How much data do you need before a comparison between materials representations can be trusted? A score from a small dataset can mislead in three separate ways, and this page measures each one on frozen ORB-v3 and UMA-S embeddings over nine Materials Project properties.</p>
+<ol class="concl">
+<li><strong>Is the model trained on enough materials?</strong> A probe trained on few materials scores below what the same probe reaches with more data. That gap is the <em>shortfall</em>, and training size sets it.</li>
+<li><strong>Would another test set give the same score?</strong> A small test set gives a score that moves when the test set is redrawn. That movement is the <em>spread</em>, and test size sets it.</li>
+<li><strong>Does the embedding add anything beyond composition?</strong> A good score can come from the chemical formula alone. Composition-only Magpie features, run on the same draws, show how much of each score the embedding adds.</li>
+</ol>
+<div class="call">
+<p><strong>What the measurements show</strong></p>
+<ul class="why-list">
+<li><strong>Stability and sufficiency are different.</strong> Band gap gives a reproducible score from 500 training materials, but its score keeps rising until 7,000, where it comes within 0.05 of the full-data score.</li>
+<li><strong>There is no universal minimum dataset size.</strong> At 5,000 training materials the shortfall runs from <span data-live="gapEasy">0.017</span> on formation energy to <span data-live="gapHard">0.128</span> on crystal system.</li>
+<li><strong>A strong representation can lose to composition when data is scarce.</strong> Composition alone is ahead of both embeddings on density up to 500 training materials, and neither embedding resolvably beats it on magnetic density.</li>
+<li><strong>The limiting error switches with dataset size.</strong> At 200 materials a 70/30 split is best; from 500 up the shortfall dominates and the best split moves toward training.</li>
+<li><strong>80/20 works here for an empirical reason.</strong> From 500 materials up it is within 0.004 of the best split at every size measured.</li>
+</ul>
+</div>
 
 <h2 id="calc">What would my score mean?</h2>
 <p class="sub">Pick a target and two sizes. Everything below is how these numbers were
@@ -336,6 +346,14 @@ measured.</p>
 was measured on a probe trained on 20,000 materials (6,427 for bulk modulus). A probe trained on less sits
 further from its ceiling and scatters more, so the spread is scaled up by
 (1&minus;score)/(1&minus;ceiling) first. This treats the 20,000-material probe as if it were at its ceiling, so the scaled spread errs high.</p>
+<details class="every"><summary>The two errors in one paragraph, and what this page measures</summary><div class="inner"><p>A probe trained on a few hundred materials gets a score. That score
+carries two errors that are usually conflated. The <strong>shortfall</strong> is how far
+it sits below what the same probe reaches on more data; it is set by training size and
+always points down. The <strong>spread</strong> is how far it moves when the split is
+redrawn; it is set by test size. This page measures the two separately, on frozen ORB-v3 and UMA-S embeddings over nine Materials Project properties, with
+composition-only Magpie features run on the same draws as a baseline, and uses the result
+to decide how much data is enough, where to put the split,<span class="needs-cv"> whether cross-validation is
+worth it,</span> and from how many materials an embedding's score says more than the formula.</p>
 <div class="intro"><p><strong>What this page measures.</strong></p>
 <ul class="why-list">
 <li>The size of each error, in R&sup2; or macro-F1, for frozen ORB-v3 and UMA-S
@@ -369,24 +387,8 @@ properties in frozen interatomic potential embeddings are decodable and ordered 
 physical scale</em>, accepted at the AI4Sci and AI4Mat workshops, NeurIPS 2026. Magpie's ceilings are the same manuscript's
 composition-baseline control: the same probe on the Magpie features, full 80/20 split.</p></div>
 
-<h2 id="why">Known from the literature</h2>
-<ul class="why-list">
-<li>Test-set size sets the variance of a score; training-set size sets its bias
-(Hastie, Tibshirani &amp; Friedman, 2009, ch.&nbsp;7).</li>
-<li>At around 100 samples a cross-validated score carries error bars of roughly
-&plusmn;10&nbsp;% (Varoquaux, 2018).</li>
-<li>Learning curves rise monotonically with training size and rarely saturate at the
-sizes a study can afford (Cortes et al., 1994; Xu et al., 2023).</li>
-<li>Cross-validation estimates how well the <em>procedure</em> does on average at that
-training size, not how well the one model you fitted will do (Bates, Hastie &amp;
-Tibshirani, 2023).</li>
-<li>The k fold scores from one cross-validation are not independent &mdash; every pair
-of folds shares most of its training data &mdash; so no formula can turn their scatter
-into a correct error bar in general; any such estimate is biased (Bengio &amp;
-Grandvalet, 2004).<span class="needs-cv"> That is why this page measures interval coverage directly.</span></li>
-</ul>
-
-<h2 id="design">The design</h2>
+</div></details>
+<h2 id="design">How it was measured</h2>
 
 <p>Everything here is measured on <strong>154,875 Materials Project crystals</strong>,
 each represented by one frozen ORB-v3 or UMA-S embedding vector or by its 132 Magpie
@@ -499,7 +501,26 @@ draws per size, plus the full 20,000-material test set once. Bulk modulus stops 
 </div></div>
 </div></details>
 
-<h2 id="training">Training size sets the shortfall</h2>
+<details class="every"><summary>Known from the literature</summary><div class="inner">
+<ul class="why-list">
+<li>Test-set size sets the variance of a score; training-set size sets its bias
+(Hastie, Tibshirani &amp; Friedman, 2009, ch.&nbsp;7).</li>
+<li>At around 100 samples a cross-validated score carries error bars of roughly
+&plusmn;10&nbsp;% (Varoquaux, 2018).</li>
+<li>Learning curves rise monotonically with training size and rarely saturate at the
+sizes a study can afford (Cortes et al., 1994; Xu et al., 2023).</li>
+<li>Cross-validation estimates how well the <em>procedure</em> does on average at that
+training size, not how well the one model you fitted will do (Bates, Hastie &amp;
+Tibshirani, 2023).</li>
+<li>The k fold scores from one cross-validation are not independent &mdash; every pair
+of folds shares most of its training data &mdash; so no formula can turn their scatter
+into a correct error bar in general; any such estimate is biased (Bengio &amp;
+Grandvalet, 2004).<span class="needs-cv"> That is why this page measures interval coverage directly.</span></li>
+</ul>
+
+</div></details>
+<h2 id="training">1 &middot; Is the model trained on enough materials?</h2>
+<p class="sub">Training size sets the shortfall: how far a score sits below the same probe's full-corpus score.</p>
 <p class="keyline"><span class="key"><i class="kc" style="background:var(--orb)"></i>ORB-v3</span><span class="key"><i class="kc" style="background:var(--uma)"></i>UMA-S</span><span class="key"><i class="kc" style="background:var(--mag)"></i>Magpie, composition only</span><span class="key"><i class="kd"></i>dashed: that arm's full-corpus score</span><span class="key"><i class="kb"></i>band: p10&ndash;p90 across draws</span></p>
 
 <div class="ctl">
@@ -808,7 +829,79 @@ those differences on paired draws.</p>
 <tr><td class="num">10,000</td><td class="num">7</td><td class="num">0.835</td><td class="num">0.831</td><td class="num">0.836</td><td class="num">0.005</td><td class="num">0.860</td><td class="num">0.025</td></tr>
 <tr><td class="num">20,000</td><td class="num">6</td><td class="num">0.844</td><td class="num">0.842</td><td class="num">0.847</td><td class="num">0.005</td><td class="num">0.860</td><td class="num">0.015</td></tr>
 </tbody></table></div>
-</div></details><h2 id="test">Test size sets the spread</h2>
+</div></details><h3>One number of materials cannot describe nine targets</h3>
+<p class="sub">Shortfall at 5,000 training materials, per target, for both embeddings and for Magpie. Each bar is measured against that arm's own full-corpus score.</p>
+<p class="keyline"><span class="key"><i class="kc" style="background:var(--orb)"></i>ORB-v3</span><span class="key"><i class="kc" style="background:var(--uma)"></i>UMA-S</span><span class="key"><i class="kc" style="background:var(--mag)"></i>Magpie, composition only</span></p>
+<svg viewBox="0 0 700 352" role="img" aria-label="shortfall below the full-corpus score at 5,000 training materials, per target, ORB, UMA and Magpie"><line x1="150.0" y1="14" x2="150.0" y2="322" style="stroke:var(--rule);stroke-width:1"/><text x="150.0" y="334" text-anchor="middle" font-size="9" fill="var(--muted)" font-family="monospace">0.00</text><line x1="277.5" y1="14" x2="277.5" y2="322" style="stroke:var(--rule);stroke-width:1"/><text x="277.5" y="334" text-anchor="middle" font-size="9" fill="var(--muted)" font-family="monospace">0.04</text><line x1="405.0" y1="14" x2="405.0" y2="322" style="stroke:var(--rule);stroke-width:1"/><text x="405.0" y="334" text-anchor="middle" font-size="9" fill="var(--muted)" font-family="monospace">0.09</text><line x1="532.5" y1="14" x2="532.5" y2="322" style="stroke:var(--rule);stroke-width:1"/><text x="532.5" y="334" text-anchor="middle" font-size="9" fill="var(--muted)" font-family="monospace">0.13</text><line x1="660.0" y1="14" x2="660.0" y2="322" style="stroke:var(--rule);stroke-width:1"/><text x="660.0" y="334" text-anchor="middle" font-size="9" fill="var(--muted)" font-family="monospace">0.17</text><text x="140" y="35.0" text-anchor="end" font-size="10.5" fill="var(--ink)" dominant-baseline="middle">bulk modulus</text><rect x="150.0" y="19.7" width="49.7" height="8.7" style="fill:var(--orb)"/><text x="204.7" y="24.3" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.017</text><rect x="150.0" y="29.9" width="39.1" height="8.7" style="fill:var(--uma)"/><text x="194.1" y="34.5" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.013</text><rect x="150.0" y="40.1" width="37.3" height="8.7" style="fill:var(--mag)"/><text x="192.3" y="44.7" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.013</text><text x="140" y="69.0" text-anchor="end" font-size="10.5" fill="var(--ink)" dominant-baseline="middle">formation energy / atom</text><rect x="150.0" y="53.7" width="57.6" height="8.7" style="fill:var(--orb)"/><text x="212.6" y="58.3" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.019</text><rect x="150.0" y="63.9" width="40.7" height="8.7" style="fill:var(--uma)"/><text x="195.7" y="68.5" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.014</text><rect x="150.0" y="74.1" width="133.4" height="8.7" style="fill:var(--mag)"/><text x="288.4" y="78.7" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.045</text><text x="140" y="103.0" text-anchor="end" font-size="10.5" fill="var(--ink)" dominant-baseline="middle">metal / insulator</text><rect x="150.0" y="87.7" width="68.9" height="8.7" style="fill:var(--orb)"/><text x="223.9" y="92.3" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.023</text><rect x="150.0" y="97.9" width="69.1" height="8.7" style="fill:var(--uma)"/><text x="224.1" y="102.5" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.023</text><rect x="150.0" y="108.1" width="91.5" height="8.7" style="fill:var(--mag)"/><text x="246.5" y="112.7" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.031</text><text x="140" y="137.0" text-anchor="end" font-size="10.5" fill="var(--ink)" dominant-baseline="middle">magnetic / not</text><rect x="150.0" y="121.7" width="101.1" height="8.7" style="fill:var(--orb)"/><text x="256.1" y="126.3" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.034</text><rect x="150.0" y="131.9" width="77.3" height="8.7" style="fill:var(--uma)"/><text x="232.3" y="136.5" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.026</text><rect x="150.0" y="142.1" width="118.3" height="8.7" style="fill:var(--mag)"/><text x="273.3" y="146.7" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.040</text><text x="140" y="171.0" text-anchor="end" font-size="10.5" fill="var(--ink)" dominant-baseline="middle">energy above hull</text><rect x="150.0" y="155.7" width="212.4" height="8.7" style="fill:var(--orb)"/><text x="367.4" y="160.3" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.072</text><rect x="150.0" y="165.9" width="126.9" height="8.7" style="fill:var(--uma)"/><text x="281.9" y="170.5" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.043</text><rect x="150.0" y="176.1" width="472.2" height="8.7" style="fill:var(--mag)"/><text x="627.2" y="180.7" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.159</text><text x="140" y="205.0" text-anchor="end" font-size="10.5" fill="var(--ink)" dominant-baseline="middle">band gap</text><rect x="150.0" y="189.7" width="182.5" height="8.7" style="fill:var(--orb)"/><text x="337.5" y="194.3" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.061</text><rect x="150.0" y="199.9" width="168.2" height="8.7" style="fill:var(--uma)"/><text x="323.2" y="204.5" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.057</text><rect x="150.0" y="210.1" width="361.2" height="8.7" style="fill:var(--mag)"/><text x="516.2" y="214.7" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.122</text><text x="140" y="239.0" text-anchor="end" font-size="10.5" fill="var(--ink)" dominant-baseline="middle">density</text><rect x="150.0" y="223.7" width="184.9" height="8.7" style="fill:var(--orb)"/><text x="339.9" y="228.3" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.062</text><rect x="150.0" y="233.9" width="188.3" height="8.7" style="fill:var(--uma)"/><text x="343.3" y="238.5" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.063</text><rect x="150.0" y="244.1" width="157.7" height="8.7" style="fill:var(--mag)"/><text x="312.7" y="248.7" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.053</text><text x="140" y="273.0" text-anchor="end" font-size="10.5" fill="var(--ink)" dominant-baseline="middle">magnetic density</text><rect x="150.0" y="257.7" width="338.4" height="8.7" style="fill:var(--orb)"/><text x="493.4" y="262.3" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.114</text><rect x="150.0" y="267.9" width="305.2" height="8.7" style="fill:var(--uma)"/><text x="460.2" y="272.5" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.103</text><rect x="150.0" y="278.1" width="236.1" height="8.7" style="fill:var(--mag)"/><text x="391.1" y="282.7" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.080</text><text x="140" y="307.0" text-anchor="end" font-size="10.5" fill="var(--ink)" dominant-baseline="middle">crystal system</text><rect x="150.0" y="291.7" width="391.0" height="8.7" style="fill:var(--orb)"/><text x="546.0" y="296.3" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.132</text><rect x="150.0" y="301.9" width="369.4" height="8.7" style="fill:var(--uma)"/><text x="524.4" y="306.5" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.124</text><rect x="150.0" y="312.1" width="337.3" height="8.7" style="fill:var(--mag)"/><text x="492.3" y="316.7" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.114</text><line x1="150.0" y1="14" x2="150.0" y2="322" style="stroke:var(--axis);stroke-width:1"/><text x="405" y="348" text-anchor="middle" font-size="9.5" fill="var(--muted)">shortfall below the full-corpus score, at 5,000 training materials</text></svg>
+
+<p><strong>The same number of materials is
+<span data-live="gapEasy">0.017</span> short on one target and
+<span data-live="gapHard">0.128</span> short on another.</strong> At 5,000 training
+materials formation energy is essentially at its ceiling, while crystal system is still
+0.13 of macro-F1 below it &mdash; a span of about
+<span data-live="span5k">7.7</span>&times;. ORB-v3 and UMA-S agree to within <span data-live="embAgree">0.029</span> on every target at this size, and within 0.01 on seven of the nine. The largest gaps are on energy above hull and magnetic density, where ORB-v3 sits 0.03 and 0.01 further below its ceiling than UMA-S does. Both embeddings agree on which targets need more data. Magpie shows a narrower span, 5.2&times;, from 0.031 on metal&nbsp;/&nbsp;insulator to 0.159 on energy above hull. Both spans leave out bulk modulus, which has one draw at this size; with it, Magpie's span is 12.6&times; and the embeddings' 8.6&times;. Magpie sits further below its own ceiling than the embeddings do on five targets and closer to it on density, magnetic density, bulk modulus and crystal system.</p>
+
+<div class="scroll"><table>
+<thead><tr><th>training materials</th><th class="num">5,000</th><th class="num">7,000</th>
+<th class="num">10,000</th><th class="num">20,000</th></tr></thead>
+<tbody>
+<tr><td>span, hardest / easiest target</td>
+<td class="num" data-live="span-5000">7.7&times;</td>
+<td class="num" data-live="span-7000">8.6&times;</td>
+<td class="num" data-live="span-10000">8.7&times;</td>
+<td class="num" data-live="span-20000">8.8&times;</td></tr>
+</tbody></table></div>
+
+<div class="call">
+<p><strong>At one training size the targets sit far apart.</strong> At 5,000 the shortfall is <span data-live="gapEasy">0.017</span> on formation energy and <span data-live="gapHard">0.128</span> on crystal system &mdash; about <span data-live="span5k">7.7</span>&times; larger &mdash; and adding data widens the span between hardest and easiest target, to <span data-live="span-20000">8.8&times;</span> at 20,000. The shortfall is therefore reported per target alongside the score.</p>
+</div>
+<h3>Training floor: 5,000 materials</h3>
+<p>The shortfall is how far a score sits below the same probe's full-corpus score. It falls at every step of the grid:</p>
+<div class="scroll"><table class="compact">
+<thead><tr><th class="num">training<br>materials</th><th class="num">median<br>shortfall</th><th class="num">range across<br>targets</th><th class="num">materials<br>at 80/20</th></tr></thead>
+<tbody>
+<tr><td class="num">50</td><td class="num">0.487</td><td class="num">0.151&ndash;0.787</td><td class="num">62</td></tr>
+<tr><td class="num">100</td><td class="num">0.386</td><td class="num">0.108&ndash;0.535</td><td class="num">125</td></tr>
+<tr><td class="num">200</td><td class="num">0.317</td><td class="num">0.083&ndash;0.417</td><td class="num">250</td></tr>
+<tr><td class="num">500</td><td class="num">0.214</td><td class="num">0.057&ndash;0.287</td><td class="num">625</td></tr>
+<tr><td class="num">1,000</td><td class="num">0.150</td><td class="num">0.045&ndash;0.228</td><td class="num">1,250</td></tr>
+<tr><td class="num">2,000</td><td class="num">0.105</td><td class="num">0.033&ndash;0.187</td><td class="num">2,500</td></tr>
+<tr class="settled"><td class="num">5,000</td><td class="num">0.058</td><td class="num">0.017&ndash;0.128</td><td class="num">6,250</td></tr>
+<tr><td class="num">7,000</td><td class="num">0.047</td><td class="num">0.013&ndash;0.110</td><td class="num">8,750</td></tr>
+<tr><td class="num">10,000</td><td class="num">0.035</td><td class="num">0.010&ndash;0.090</td><td class="num">12,500</td></tr>
+<tr><td class="num">20,000</td><td class="num">0.021</td><td class="num">0.006&ndash;0.050</td><td class="num">25,000</td></tr>
+</tbody></table></div>
+<p>Median and range over the eight targets measured at every size; bulk modulus is left out because its corpus stops the curve at 5,000. The highlighted row is the floor.</p>
+<p>There is no knee. Up to 2,000 the median target is more than 0.10 short, so a score there is mainly a lower bound. From 5,000 to 20,000 each step buys 0.011&ndash;0.014 of shortfall and costs progressively more data &mdash; 40&nbsp;% more materials for the first step, then 43&nbsp;%, then 100&nbsp;%. The floor sits at 5,000, where the median target is 0.058 short; it is set by how much data it is reasonable to demand.</p>
+
+
+
+<p>ORB-v3 and UMA-S agree to within 0.029 at every size, and within 0.01 on all targets except energy above hull, where the gap is 0.013&ndash;0.029, and magnetic density at 5,000, where it is 0.011; both rank the targets in nearly the same order (rank correlation 0.88&ndash;0.93), so which targets need more data is a property of the task and not of either one.</p>
+
+
+<details class="every"><summary>Raising the floor does not fix the target that needs fixing &mdash; shortfall per target at 5,000 to 20,000</summary><div class="inner">
+<div class="scroll"><table>
+<thead><tr><th>target</th><th class="num">5,000</th><th class="num">7,000</th><th class="num">10,000</th><th class="num">20,000</th></tr></thead>
+<tbody>
+<tr><td>bulk modulus</td><td class="num">0.015</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td></tr>
+<tr><td>formation energy / atom</td><td class="num">0.017</td><td class="num">0.013</td><td class="num">0.010</td><td class="num">0.006</td></tr>
+<tr><td>metal / insulator</td><td class="num">0.023</td><td class="num">0.020</td><td class="num">0.016</td><td class="num">0.010</td></tr>
+<tr><td>magnetic / not</td><td class="num">0.030</td><td class="num">0.024</td><td class="num">0.019</td><td class="num">0.010</td></tr>
+<tr><td>energy above hull</td><td class="num">0.057</td><td class="num">0.046</td><td class="num">0.034</td><td class="num">0.021</td></tr>
+<tr><td>band gap</td><td class="num">0.059</td><td class="num">0.048</td><td class="num">0.037</td><td class="num">0.023</td></tr>
+<tr><td>density</td><td class="num">0.063</td><td class="num">0.050</td><td class="num">0.036</td><td class="num">0.021</td></tr>
+<tr><td>magnetic density</td><td class="num">0.108</td><td class="num">0.093</td><td class="num">0.076</td><td class="num">0.050</td></tr>
+<tr><td><strong>crystal system</strong></td><td class="num"><strong>0.128</strong></td><td class="num"><strong>0.110</strong></td><td class="num"><strong>0.090</strong></td><td class="num"><strong>0.048</strong></td></tr>
+<tr><td>span, hardest / easiest</td><td class="num">7.7&times;</td><td class="num">8.6&times;</td><td class="num">8.7&times;</td><td class="num">8.8&times;</td></tr>
+</tbody></table></div>
+
+<p>Bulk modulus stops at 5,000 because its corpus holds 12,853 materials, so a training set of 7,000 cannot be drawn alongside a disjoint reference set. It is left out of the pooled mean above for the same reason: including it would change what the column averages partway along the row.</p>
+
+<p>The span across targets widens with training data. Crystal system at 20,000 is still 0.048 short &mdash; worse than formation energy is at 5,000, on four times the data. A floor set high enough to bring crystal system within 0.05 of its ceiling would be 20,000, the largest size measured, and still leave the easy targets paying for it.</p>
+
+</div></details>
+<h2 id="test">2 &middot; Would another test set give the same score?</h2>
+<p class="sub">Test size sets the spread: how far a score moves when the test set is redrawn.</p>
 <p class="sub">The probe is fitted once on 20,000 materials (6,427 on bulk modulus); only the materials it is scored on change.</p>
 <p class="keyline"><span class="key"><i class="kc" style="background:var(--orb)"></i>ORB-v3</span><span class="key"><i class="kc" style="background:var(--uma)"></i>UMA-S</span><span class="key"><i class="kc" style="background:var(--mag)"></i>Magpie, composition only</span><span class="key"><i class="kd"></i>dashed: that arm's full-corpus score</span><span class="key"><i class="kb"></i>band: p10&ndash;p90 across draws</span></p>
 <div class="grid">
@@ -1108,33 +1201,132 @@ before combining spread with shortfall.</p>
 <p><strong>Test size moves the spread and little else.</strong> Across the grid the spread falls from 0.239 at 20 test materials to 0.010 at 5,000 &mdash; a factor of 24 &mdash; while the shortfall down each curve moves by no more than 0.021 from 200 test materials upward &mdash; for band gap under XGBoost, 0.394 to 0.031 of spread against a shortfall that moves by at most 0.021. The two axes are separable. Reaching &plusmn;0.016 on a score takes about 1,000 test materials; 500 gives &plusmn;0.024 and 200 gives &plusmn;0.040.</p>
 </div>
 
-</div></details><h2 id="per-target">One number of materials cannot describe nine targets</h2>
-<p class="sub">Shortfall at 5,000 training materials, per target, for both embeddings and for Magpie. Each bar is measured against that arm's own full-corpus score.</p>
-<p class="keyline"><span class="key"><i class="kc" style="background:var(--orb)"></i>ORB-v3</span><span class="key"><i class="kc" style="background:var(--uma)"></i>UMA-S</span><span class="key"><i class="kc" style="background:var(--mag)"></i>Magpie, composition only</span></p>
-<svg viewBox="0 0 700 352" role="img" aria-label="shortfall below the full-corpus score at 5,000 training materials, per target, ORB, UMA and Magpie"><line x1="150.0" y1="14" x2="150.0" y2="322" style="stroke:var(--rule);stroke-width:1"/><text x="150.0" y="334" text-anchor="middle" font-size="9" fill="var(--muted)" font-family="monospace">0.00</text><line x1="277.5" y1="14" x2="277.5" y2="322" style="stroke:var(--rule);stroke-width:1"/><text x="277.5" y="334" text-anchor="middle" font-size="9" fill="var(--muted)" font-family="monospace">0.04</text><line x1="405.0" y1="14" x2="405.0" y2="322" style="stroke:var(--rule);stroke-width:1"/><text x="405.0" y="334" text-anchor="middle" font-size="9" fill="var(--muted)" font-family="monospace">0.09</text><line x1="532.5" y1="14" x2="532.5" y2="322" style="stroke:var(--rule);stroke-width:1"/><text x="532.5" y="334" text-anchor="middle" font-size="9" fill="var(--muted)" font-family="monospace">0.13</text><line x1="660.0" y1="14" x2="660.0" y2="322" style="stroke:var(--rule);stroke-width:1"/><text x="660.0" y="334" text-anchor="middle" font-size="9" fill="var(--muted)" font-family="monospace">0.17</text><text x="140" y="35.0" text-anchor="end" font-size="10.5" fill="var(--ink)" dominant-baseline="middle">bulk modulus</text><rect x="150.0" y="19.7" width="49.7" height="8.7" style="fill:var(--orb)"/><text x="204.7" y="24.3" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.017</text><rect x="150.0" y="29.9" width="39.1" height="8.7" style="fill:var(--uma)"/><text x="194.1" y="34.5" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.013</text><rect x="150.0" y="40.1" width="37.3" height="8.7" style="fill:var(--mag)"/><text x="192.3" y="44.7" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.013</text><text x="140" y="69.0" text-anchor="end" font-size="10.5" fill="var(--ink)" dominant-baseline="middle">formation energy / atom</text><rect x="150.0" y="53.7" width="57.6" height="8.7" style="fill:var(--orb)"/><text x="212.6" y="58.3" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.019</text><rect x="150.0" y="63.9" width="40.7" height="8.7" style="fill:var(--uma)"/><text x="195.7" y="68.5" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.014</text><rect x="150.0" y="74.1" width="133.4" height="8.7" style="fill:var(--mag)"/><text x="288.4" y="78.7" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.045</text><text x="140" y="103.0" text-anchor="end" font-size="10.5" fill="var(--ink)" dominant-baseline="middle">metal / insulator</text><rect x="150.0" y="87.7" width="68.9" height="8.7" style="fill:var(--orb)"/><text x="223.9" y="92.3" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.023</text><rect x="150.0" y="97.9" width="69.1" height="8.7" style="fill:var(--uma)"/><text x="224.1" y="102.5" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.023</text><rect x="150.0" y="108.1" width="91.5" height="8.7" style="fill:var(--mag)"/><text x="246.5" y="112.7" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.031</text><text x="140" y="137.0" text-anchor="end" font-size="10.5" fill="var(--ink)" dominant-baseline="middle">magnetic / not</text><rect x="150.0" y="121.7" width="101.1" height="8.7" style="fill:var(--orb)"/><text x="256.1" y="126.3" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.034</text><rect x="150.0" y="131.9" width="77.3" height="8.7" style="fill:var(--uma)"/><text x="232.3" y="136.5" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.026</text><rect x="150.0" y="142.1" width="118.3" height="8.7" style="fill:var(--mag)"/><text x="273.3" y="146.7" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.040</text><text x="140" y="171.0" text-anchor="end" font-size="10.5" fill="var(--ink)" dominant-baseline="middle">energy above hull</text><rect x="150.0" y="155.7" width="212.4" height="8.7" style="fill:var(--orb)"/><text x="367.4" y="160.3" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.072</text><rect x="150.0" y="165.9" width="126.9" height="8.7" style="fill:var(--uma)"/><text x="281.9" y="170.5" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.043</text><rect x="150.0" y="176.1" width="472.2" height="8.7" style="fill:var(--mag)"/><text x="627.2" y="180.7" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.159</text><text x="140" y="205.0" text-anchor="end" font-size="10.5" fill="var(--ink)" dominant-baseline="middle">band gap</text><rect x="150.0" y="189.7" width="182.5" height="8.7" style="fill:var(--orb)"/><text x="337.5" y="194.3" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.061</text><rect x="150.0" y="199.9" width="168.2" height="8.7" style="fill:var(--uma)"/><text x="323.2" y="204.5" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.057</text><rect x="150.0" y="210.1" width="361.2" height="8.7" style="fill:var(--mag)"/><text x="516.2" y="214.7" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.122</text><text x="140" y="239.0" text-anchor="end" font-size="10.5" fill="var(--ink)" dominant-baseline="middle">density</text><rect x="150.0" y="223.7" width="184.9" height="8.7" style="fill:var(--orb)"/><text x="339.9" y="228.3" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.062</text><rect x="150.0" y="233.9" width="188.3" height="8.7" style="fill:var(--uma)"/><text x="343.3" y="238.5" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.063</text><rect x="150.0" y="244.1" width="157.7" height="8.7" style="fill:var(--mag)"/><text x="312.7" y="248.7" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.053</text><text x="140" y="273.0" text-anchor="end" font-size="10.5" fill="var(--ink)" dominant-baseline="middle">magnetic density</text><rect x="150.0" y="257.7" width="338.4" height="8.7" style="fill:var(--orb)"/><text x="493.4" y="262.3" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.114</text><rect x="150.0" y="267.9" width="305.2" height="8.7" style="fill:var(--uma)"/><text x="460.2" y="272.5" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.103</text><rect x="150.0" y="278.1" width="236.1" height="8.7" style="fill:var(--mag)"/><text x="391.1" y="282.7" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.080</text><text x="140" y="307.0" text-anchor="end" font-size="10.5" fill="var(--ink)" dominant-baseline="middle">crystal system</text><rect x="150.0" y="291.7" width="391.0" height="8.7" style="fill:var(--orb)"/><text x="546.0" y="296.3" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.132</text><rect x="150.0" y="301.9" width="369.4" height="8.7" style="fill:var(--uma)"/><text x="524.4" y="306.5" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.124</text><rect x="150.0" y="312.1" width="337.3" height="8.7" style="fill:var(--mag)"/><text x="492.3" y="316.7" font-size="8.5" fill="var(--muted)" font-family="monospace" dominant-baseline="middle">0.114</text><line x1="150.0" y1="14" x2="150.0" y2="322" style="stroke:var(--axis);stroke-width:1"/><text x="405" y="348" text-anchor="middle" font-size="9.5" fill="var(--muted)">shortfall below the full-corpus score, at 5,000 training materials</text></svg>
-
-<p><strong>The same number of materials is
-<span data-live="gapEasy">0.017</span> short on one target and
-<span data-live="gapHard">0.128</span> short on another.</strong> At 5,000 training
-materials formation energy is essentially at its ceiling, while crystal system is still
-0.13 of macro-F1 below it &mdash; a span of about
-<span data-live="span5k">7.7</span>&times;. ORB-v3 and UMA-S agree to within <span data-live="embAgree">0.029</span> on every target at this size, and within 0.01 on seven of the nine. The largest gaps are on energy above hull and magnetic density, where ORB-v3 sits 0.03 and 0.01 further below its ceiling than UMA-S does. Both embeddings agree on which targets need more data. Magpie shows a narrower span, 5.2&times;, from 0.031 on metal&nbsp;/&nbsp;insulator to 0.159 on energy above hull. Both spans leave out bulk modulus, which has one draw at this size; with it, Magpie's span is 12.6&times; and the embeddings' 8.6&times;. Magpie sits further below its own ceiling than the embeddings do on five targets and closer to it on density, magnetic density, bulk modulus and crystal system.</p>
-
-<div class="scroll"><table>
-<thead><tr><th>training materials</th><th class="num">5,000</th><th class="num">7,000</th>
-<th class="num">10,000</th><th class="num">20,000</th></tr></thead>
+</div></details><h3>Test floor: 500 materials</h3>
+<p>The spread is how far a score moves when the test set is re-drawn: the p10&ndash;p90 width over 200 re-drawn test sets, scored with one probe trained on 20,000 materials.</p>
+<div class="scroll"><table class="compact">
+<thead><tr><th class="num">test<br>materials</th><th class="num">median<br>spread</th><th class="num">range across<br>targets</th><th class="num">&plusmn; on<br>one score</th></tr></thead>
 <tbody>
-<tr><td>span, hardest / easiest target</td>
-<td class="num" data-live="span-5000">7.7&times;</td>
-<td class="num" data-live="span-7000">8.6&times;</td>
-<td class="num" data-live="span-10000">8.7&times;</td>
-<td class="num" data-live="span-20000">8.8&times;</td></tr>
+<tr><td class="num">20</td><td class="num">0.250</td><td class="num">0.033&ndash;4.140</td><td class="num">&plusmn;0.125</td></tr>
+<tr><td class="num">50</td><td class="num">0.125</td><td class="num">0.028&ndash;0.507</td><td class="num">&plusmn;0.063</td></tr>
+<tr><td class="num">100</td><td class="num">0.107</td><td class="num">0.020&ndash;0.300</td><td class="num">&plusmn;0.053</td></tr>
+<tr><td class="num">200</td><td class="num">0.078</td><td class="num">0.015&ndash;0.189</td><td class="num">&plusmn;0.039</td></tr>
+<tr class="settled"><td class="num">500</td><td class="num">0.046</td><td class="num">0.012&ndash;0.117</td><td class="num">&plusmn;0.023</td></tr>
+<tr><td class="num">1,000</td><td class="num">0.032</td><td class="num">0.011&ndash;0.080</td><td class="num">&plusmn;0.016</td></tr>
+<tr><td class="num">2,000</td><td class="num">0.020</td><td class="num">0.007&ndash;0.059</td><td class="num">&plusmn;0.010</td></tr>
+<tr><td class="num">5,000</td><td class="num">0.009</td><td class="num">0.005&ndash;0.034</td><td class="num">&plusmn;0.005</td></tr>
+<tr><td class="num">10,000</td><td class="num">0.008</td><td class="num">0.003&ndash;0.019</td><td class="num">&plusmn;0.004</td></tr>
 </tbody></table></div>
+<p>Median and range over every target measured at that size; bulk modulus stops at 5,000, and the 20,000 point is the whole test set, a single score with no spread. The highlighted row is the floor.</p>
+
+<p>500 is the smallest size on the grid at which the median target's spread is under 0.05, about &plusmn;0.023 on one score. At 200 it is 0.078 (&plusmn;0.039), and the hardest target, magnetic density, moves by 0.189. Like the shortfall, the spread has no knee: it more than halves from 200 to 1,000 and keeps falling. At an 80/20 split the training floor already brings 1,250 test materials, above the test floor, so the test floor matters for smaller datasets and for other splits.</p>
+
+<h3>Both floors together</h3>
+<p class="sub">Two floors, one per axis: a training size read off the shortfall, and a test size read off the spread. XGBoost, each target the mean of ORB-v3 and UMA-S.</p>
+
+<div class="cvx floor-box">
+  <div class="cvx-strip"><div class="cvx-stat"><span class="k">training floor</span><span class="v">5,000</span></div><div class="cvx-stat"><span class="k">median shortfall there</span><span class="v">0.058</span></div><div class="cvx-stat"><span class="k">test floor</span><span class="v">500</span></div><div class="cvx-stat"><span class="k">median spread there</span><span class="v">0.046 (&plusmn;0.023)</span></div><div class="cvx-stat"><span class="k">materials at 80/20</span><span class="v">6,250</span></div></div>
+  <p class="keyline"><span class="key"><i class="kc" style="background:var(--ink)"></i>median across targets</span><span class="key"><i class="kb" style="background:var(--ink)"></i>band: middle half of targets</span><span class="key"><i class="kd"></i>dashed: spread of 0.05</span><span class="key"><i class="kd" style="border-top-style:dotted;border-color:var(--ink)"></i>dotted: the floor</span></p>
+  <div class="grid grid-2"><figure class="panel"><figcaption>training floor</figcaption><svg viewBox="0 0 330 218" role="img" aria-label="training floor"><line x1="50" y1="162.0" x2="304" y2="162.0" style="stroke:var(--rule,#DDE1E4);stroke-width:1"/><text x="44" y="165.5" text-anchor="end" font-size="9" fill="var(--muted,#5B646E)" font-family="monospace">-0.04</text><line x1="50" y1="113.3" x2="304" y2="113.3" style="stroke:var(--rule,#DDE1E4);stroke-width:1"/><text x="44" y="116.8" text-anchor="end" font-size="9" fill="var(--muted,#5B646E)" font-family="monospace">0.20</text><line x1="50" y1="64.7" x2="304" y2="64.7" style="stroke:var(--rule,#DDE1E4);stroke-width:1"/><text x="44" y="68.2" text-anchor="end" font-size="9" fill="var(--muted,#5B646E)" font-family="monospace">0.43</text><line x1="50" y1="16.0" x2="304" y2="16.0" style="stroke:var(--rule,#DDE1E4);stroke-width:1"/><text x="44" y="19.5" text-anchor="end" font-size="9" fill="var(--muted,#5B646E)" font-family="monospace">0.67</text><line x1="245.2" y1="16" x2="245.2" y2="162" style="stroke:var(--ink,#16191D);stroke-width:1;stroke-dasharray:2 3"/><text x="249.2" y="24" font-size="8.5" fill="var(--ink,#16191D)" font-family="monospace">floor 5k</text><polygon points="50.0,26.1 79.4,54.9 108.8,82.6 147.6,104.1 177.0,117.1 206.4,127.8 245.2,138.7 259.5,141.5 274.6,144.3 304.0,148.0 304.0,151.9 274.6,150.3 259.5,149.3 245.2,148.1 206.4,144.8 177.0,141.0 147.6,136.2 108.8,125.7 79.4,111.4 50.0,93.9" style="fill:var(--ink,#16191D);fill-opacity:0.13;stroke:none"/><polyline points="50.0,53.8 79.4,74.5 108.8,88.8 147.6,109.9 177.0,123.0 206.4,132.4 245.2,142.0 259.5,144.3 274.6,146.7 304.0,149.7" style="fill:none;stroke:var(--ink,#16191D);stroke-width:1.8"/><circle cx="50.0" cy="53.8" r="2.2" style="fill:var(--ink,#16191D)"/><circle cx="79.4" cy="74.5" r="2.2" style="fill:var(--ink,#16191D)"/><circle cx="108.8" cy="88.8" r="2.2" style="fill:var(--ink,#16191D)"/><circle cx="147.6" cy="109.9" r="2.2" style="fill:var(--ink,#16191D)"/><circle cx="177.0" cy="123.0" r="2.2" style="fill:var(--ink,#16191D)"/><circle cx="206.4" cy="132.4" r="2.2" style="fill:var(--ink,#16191D)"/><circle cx="245.2" cy="142.0" r="2.2" style="fill:var(--ink,#16191D)"/><circle cx="259.5" cy="144.3" r="2.2" style="fill:var(--ink,#16191D)"/><circle cx="274.6" cy="146.7" r="2.2" style="fill:var(--ink,#16191D)"/><circle cx="304.0" cy="149.7" r="2.2" style="fill:var(--ink,#16191D)"/><line x1="50.0" y1="178" x2="50.0" y2="181" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="50.0" y="189" text-anchor="middle" font-size="8.5" fill="var(--muted,#5B646E)" font-family="monospace">50</text><line x1="79.4" y1="178" x2="79.4" y2="181" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="79.4" y="189" text-anchor="middle" font-size="8.5" fill="var(--muted,#5B646E)" font-family="monospace">100</text><line x1="108.8" y1="178" x2="108.8" y2="181" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="108.8" y="189" text-anchor="middle" font-size="8.5" fill="var(--muted,#5B646E)" font-family="monospace">200</text><line x1="147.6" y1="178" x2="147.6" y2="181" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="147.6" y="189" text-anchor="middle" font-size="8.5" fill="var(--muted,#5B646E)" font-family="monospace">500</text><line x1="177.0" y1="178" x2="177.0" y2="181" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="177.0" y="189" text-anchor="middle" font-size="8.5" fill="var(--muted,#5B646E)" font-family="monospace">1k</text><line x1="206.4" y1="178" x2="206.4" y2="181" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="206.4" y="189" text-anchor="middle" font-size="8.5" fill="var(--muted,#5B646E)" font-family="monospace">2k</text><line x1="245.2" y1="178" x2="245.2" y2="181" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="245.2" y="189" text-anchor="middle" font-size="8.5" fill="var(--muted,#5B646E)" font-family="monospace">5k</text><line x1="259.5" y1="178" x2="259.5" y2="181" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="259.5" y="198" text-anchor="middle" font-size="8.5" fill="var(--muted,#5B646E)" font-family="monospace">7k</text><line x1="274.6" y1="178" x2="274.6" y2="181" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="274.6" y="189" text-anchor="middle" font-size="8.5" fill="var(--muted,#5B646E)" font-family="monospace">10k</text><line x1="304.0" y1="178" x2="304.0" y2="181" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="304.0" y="189" text-anchor="middle" font-size="8.5" fill="var(--muted,#5B646E)" font-family="monospace">20k</text><line x1="50" y1="178" x2="304" y2="178" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="177" y="212" text-anchor="middle" font-size="9.5" fill="var(--muted,#5B646E)">number of training materials</text><text transform="rotate(-90)" x="-89" y="11" text-anchor="middle" font-size="9.5" fill="var(--muted,#5B646E)">shortfall from ceiling</text></svg></figure><figure class="panel"><figcaption>test floor</figcaption><svg viewBox="0 0 330 218" role="img" aria-label="test floor"><line x1="50" y1="162.0" x2="304" y2="162.0" style="stroke:var(--rule,#DDE1E4);stroke-width:1"/><text x="44" y="165.5" text-anchor="end" font-size="9" fill="var(--muted,#5B646E)" font-family="monospace">-0.02</text><line x1="50" y1="113.3" x2="304" y2="113.3" style="stroke:var(--rule,#DDE1E4);stroke-width:1"/><text x="44" y="116.8" text-anchor="end" font-size="9" fill="var(--muted,#5B646E)" font-family="monospace">0.11</text><line x1="50" y1="64.7" x2="304" y2="64.7" style="stroke:var(--rule,#DDE1E4);stroke-width:1"/><text x="44" y="68.2" text-anchor="end" font-size="9" fill="var(--muted,#5B646E)" font-family="monospace">0.25</text><line x1="50" y1="16.0" x2="304" y2="16.0" style="stroke:var(--rule,#DDE1E4);stroke-width:1"/><text x="44" y="19.5" text-anchor="end" font-size="9" fill="var(--muted,#5B646E)" font-family="monospace">0.38</text><line x1="50" y1="135.8" x2="304" y2="135.8" style="stroke:var(--ink,#16191D);stroke-width:1.2;stroke-dasharray:4 3;opacity:0.9"/><line x1="181.6" y1="16" x2="181.6" y2="162" style="stroke:var(--ink,#16191D);stroke-width:1;stroke-dasharray:2 3"/><text x="185.6" y="24" font-size="8.5" fill="var(--ink,#16191D)" font-family="monospace">floor 500</text><polygon points="50.0,26.1 87.5,77.1 115.8,102.1 144.1,108.5 181.6,125.1 209.9,138.2 238.2,142.7 275.7,147.2 304.0,149.5 304.0,151.9 275.7,151.1 238.2,147.9 209.9,145.5 181.6,142.7 144.1,134.3 115.8,127.9 87.5,112.7 50.0,90.1" style="fill:var(--ink,#16191D);fill-opacity:0.13;stroke:none"/><polyline points="50.0,63.7 87.5,108.6 115.8,115.4 144.1,125.7 181.6,137.1 209.9,142.4 238.2,146.5 275.7,150.4 304.0,151.1" style="fill:none;stroke:var(--ink,#16191D);stroke-width:1.8"/><circle cx="50.0" cy="63.7" r="2.2" style="fill:var(--ink,#16191D)"/><circle cx="87.5" cy="108.6" r="2.2" style="fill:var(--ink,#16191D)"/><circle cx="115.8" cy="115.4" r="2.2" style="fill:var(--ink,#16191D)"/><circle cx="144.1" cy="125.7" r="2.2" style="fill:var(--ink,#16191D)"/><circle cx="181.6" cy="137.1" r="2.2" style="fill:var(--ink,#16191D)"/><circle cx="209.9" cy="142.4" r="2.2" style="fill:var(--ink,#16191D)"/><circle cx="238.2" cy="146.5" r="2.2" style="fill:var(--ink,#16191D)"/><circle cx="275.7" cy="150.4" r="2.2" style="fill:var(--ink,#16191D)"/><circle cx="304.0" cy="151.1" r="2.2" style="fill:var(--ink,#16191D)"/><line x1="50.0" y1="178" x2="50.0" y2="181" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="50.0" y="189" text-anchor="middle" font-size="8.5" fill="var(--muted,#5B646E)" font-family="monospace">20</text><line x1="87.5" y1="178" x2="87.5" y2="181" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="87.5" y="189" text-anchor="middle" font-size="8.5" fill="var(--muted,#5B646E)" font-family="monospace">50</text><line x1="115.8" y1="178" x2="115.8" y2="181" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="115.8" y="189" text-anchor="middle" font-size="8.5" fill="var(--muted,#5B646E)" font-family="monospace">100</text><line x1="144.1" y1="178" x2="144.1" y2="181" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="144.1" y="189" text-anchor="middle" font-size="8.5" fill="var(--muted,#5B646E)" font-family="monospace">200</text><line x1="181.6" y1="178" x2="181.6" y2="181" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="181.6" y="189" text-anchor="middle" font-size="8.5" fill="var(--muted,#5B646E)" font-family="monospace">500</text><line x1="209.9" y1="178" x2="209.9" y2="181" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="209.9" y="189" text-anchor="middle" font-size="8.5" fill="var(--muted,#5B646E)" font-family="monospace">1k</text><line x1="238.2" y1="178" x2="238.2" y2="181" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="238.2" y="189" text-anchor="middle" font-size="8.5" fill="var(--muted,#5B646E)" font-family="monospace">2k</text><line x1="275.7" y1="178" x2="275.7" y2="181" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="275.7" y="189" text-anchor="middle" font-size="8.5" fill="var(--muted,#5B646E)" font-family="monospace">5k</text><line x1="304.0" y1="178" x2="304.0" y2="181" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="304.0" y="189" text-anchor="middle" font-size="8.5" fill="var(--muted,#5B646E)" font-family="monospace">10k</text><line x1="50" y1="178" x2="304" y2="178" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="177" y="212" text-anchor="middle" font-size="9.5" fill="var(--muted,#5B646E)">number of test materials</text><text transform="rotate(-90)" x="-89" y="11" text-anchor="middle" font-size="9.5" fill="var(--muted,#5B646E)">spread (p10–p90)</text></svg></figure></div>
+</div>
 
 <div class="call">
-<p><strong>At one training size the targets sit far apart.</strong> At 5,000 the shortfall is <span data-live="gapEasy">0.017</span> on formation energy and <span data-live="gapHard">0.128</span> on crystal system &mdash; about <span data-live="span5k">7.7</span>&times; larger &mdash; and adding data widens the span between hardest and easiest target, to <span data-live="span-20000">8.8&times;</span> at 20,000. The shortfall is therefore reported per target alongside the score.</p>
+<p><strong>The floors are 5,000 training and 500 test materials. At 80/20 the training floor takes 6,250 materials in total, which puts 1,250 in the test set.</strong></p>
+<p class="why">Neither curve has a natural cut. Both floors were chosen <em>after</em> seeing the curves, as the smallest sizes at which the median target's shortfall is small enough to report and its spread is under 0.05. They are judgements about what is reasonable to ask for.</p>
 </div>
-<h2 id="composition">What the formula alone gives</h2>
+
+<p>A score below the training floor is not worthless &mdash; it is a lower bound, and should be reported as one, with its per-target shortfall beside it. Below the test floor it is noisier, and should be reported with its spread. Buying 0.011 of shortfall for another 2,500 materials is a trade for the reader to make.</p>
+
+<details class="every"><summary>Floors for one property &mdash; the training and test size each property needs on its own</summary><div class="inner">
+<p>Both floors describe the median target, and the targets differ by an order of magnitude on both axes. Anyone interested in a single property should set the floors from its own row:</p>
+<div class="scroll"><table>
+<thead><tr><th>target</th><th class="num">within 0.05 of its ceiling from<br>(training materials, ORB-v3 / UMA-S)</th><th class="num">spread at most 0.05 from<br>(test materials, ORB-v3 / UMA-S)</th></tr></thead>
+<tbody>
+<tr><td>formation energy / atom</td><td class="num">2,000 / 1,000</td><td class="num">20 / 20</td></tr>
+<tr><td>energy above hull</td><td class="num">10,000 / 5,000</td><td class="num">1,000 / 1,000</td></tr>
+<tr><td>band gap</td><td class="num">7,000 / 7,000</td><td class="num">5,000 / 5,000</td></tr>
+<tr><td>density</td><td class="num">7,000 / 7,000</td><td class="num">200 / 200</td></tr>
+<tr><td>magnetic density</td><td class="num">20,000&dagger; / 20,000&dagger;</td><td class="num">5,000 / 5,000</td></tr>
+<tr><td>bulk modulus</td><td class="num">2,000 / 2,000</td><td class="num">500 / 500</td></tr>
+<tr><td>crystal system</td><td class="num">20,000&dagger; / 20,000&dagger;</td><td class="num">1,000 / 1,000</td></tr>
+<tr><td>metal / insulator</td><td class="num">1,000 / 1,000</td><td class="num">500 / 500</td></tr>
+<tr><td>magnetic / not</td><td class="num">5,000 / 2,000</td><td class="num">500 / 500</td></tr>
+</tbody></table></div>
+<p>&dagger; reached only at the largest training size measured for that target. For formation energy alone, 2,000 training materials (1,000 with UMA-S) bring the score within 0.05 of its ceiling, and 20 test materials already hold its spread at or below 0.05. Band gap needs 7,000 training and 5,000 test materials. Crystal system and magnetic density reach their ceilings only at 20,000, the largest size measured, and magnetic density also needs 5,000 test materials.</p>
+
+</div></details>
+<h2 id="split">Where questions 1 and 2 meet: the split</h2>
+<p class="sub">Total error against the train/test fraction, at six dataset sizes from 200 to 10,000; the full-data tables below add 20,000.</p>
+<p>With a fixed number of materials, every split has to decide how many go into the test set, and that choice moves two errors in opposite directions. Fewer materials for training means the probe scores lower than it would with more data: the <strong>shortfall</strong>, read off the training-size curve. More materials for testing means the score is measured more precisely: the <strong>spread</strong>, read off the test-size curve. For each split the page reads both off the curves and combines them into one total error; the lowest point on the plot below is the best split for that dataset size.</p>
+<p><strong>How the two are combined.</strong> The shortfall is a fixed offset: the score sits that far below its ceiling every time. The spread is random: a re-split moves the score up or down. A fixed error and a random one combine as &radic;(shortfall&sup2;&nbsp;+&nbsp;sd&sup2;), where sd is the random error expressed as a standard deviation. The spread on this page is the width between the 10th and 90th percentile of the score across draws, which for a normal distribution is 2.5631 standard deviations; the page estimates it as exactly that, so sd&nbsp;=&nbsp;spread&nbsp;&divide;&nbsp;2.5631 recovers the standard deviation. One adjustment comes first: a probe that scores lower scatters more, so the spread is scaled up by (1&nbsp;&minus;&nbsp;score)/(1&nbsp;&minus;&nbsp;ceiling), as in the calculator.</p>
+<div class="sfx">
+  <div class="ctl">
+    <span class="ctl-lab">dataset size</span>
+    <div class="seg" id="sfxN" role="radiogroup" aria-label="dataset size">
+      <button type="button" data-n="200" role="radio" aria-checked="false">200</button>
+      <button type="button" data-n="500" role="radio" aria-checked="false">500</button>
+      <button type="button" data-n="1000" class="on" role="radio" aria-checked="true">1,000</button>
+      <button type="button" data-n="2000" role="radio" aria-checked="false">2,000</button>
+      <button type="button" data-n="5000" role="radio" aria-checked="false">5,000</button>
+      <button type="button" data-n="10000" role="radio" aria-checked="false">10,000</button>
+    </div>
+    <span class="ctl-lab">target</span>
+    <select id="sfxT" class="try-sel" style="flex:0 1 200px"></select>
+  </div>
+  <svg id="sfxChart" viewBox="0 0 700 260" role="img" aria-label="total error against test fraction"></svg>
+  <p class="sfx-cap" id="sfxCap"></p>
+</div>
+<details class="every"><summary>Full data &mdash; total error at every split fraction, and which fraction won in each cell</summary><div class="inner"><div class="scroll"><table>
+<thead><tr><th class="num">N</th><th>split</th><th class="num">train</th><th class="num">test</th><th class="num">score</th><th class="num">shortfall</th><th class="num">spread</th><th class="num">total error</th></tr></thead>
+<tbody>
+<tr><td rowspan="5" class="num">200</td><td>90/10</td><td class="num">180</td><td class="num">20</td><td class="num">0.608</td><td class="num">0.309</td><td class="num">1.052</td><td class="num">0.506</td></tr>
+<tr><td>80/20</td><td class="num">160</td><td class="num">40</td><td class="num">0.592</td><td class="num">0.319</td><td class="num">0.727</td><td class="num">0.394</td></tr>
+<tr class="settled"><td>70/30</td><td class="num">140</td><td class="num">60</td><td class="num">0.575</td><td class="num">0.330</td><td class="num">0.607</td><td class="num">0.384</td></tr>
+<tr><td>60/40</td><td class="num">120</td><td class="num">80</td><td class="num">0.554</td><td class="num">0.343</td><td class="num">0.566</td><td class="num">0.390</td></tr>
+<tr><td>50/50</td><td class="num">100</td><td class="num">100</td><td class="num">0.530</td><td class="num">0.358</td><td class="num">0.543</td><td class="num">0.406</td></tr>
+<tr><td rowspan="5" class="num">500</td><td>90/10</td><td class="num">450</td><td class="num">50</td><td class="num">0.729</td><td class="num">0.204</td><td class="num">0.393</td><td class="num">0.282</td></tr>
+<tr class="settled"><td>80/20</td><td class="num">400</td><td class="num">100</td><td class="num">0.713</td><td class="num">0.219</td><td class="num">0.317</td><td class="num">0.267</td></tr>
+<tr><td>70/30</td><td class="num">350</td><td class="num">150</td><td class="num">0.696</td><td class="num">0.237</td><td class="num">0.281</td><td class="num">0.279</td></tr>
+<tr><td>60/40</td><td class="num">300</td><td class="num">200</td><td class="num">0.675</td><td class="num">0.257</td><td class="num">0.253</td><td class="num">0.295</td></tr>
+<tr><td>50/50</td><td class="num">250</td><td class="num">250</td><td class="num">0.651</td><td class="num">0.279</td><td class="num">0.245</td><td class="num">0.311</td></tr>
+<tr class="settled"><td rowspan="5" class="num">1,000</td><td>90/10</td><td class="num">900</td><td class="num">100</td><td class="num">0.791</td><td class="num">0.140</td><td class="num">0.236</td><td class="num">0.190</td></tr>
+<tr><td>80/20</td><td class="num">800</td><td class="num">200</td><td class="num">0.784</td><td class="num">0.150</td><td class="num">0.176</td><td class="num">0.194</td></tr>
+<tr><td>70/30</td><td class="num">700</td><td class="num">300</td><td class="num">0.776</td><td class="num">0.162</td><td class="num">0.154</td><td class="num">0.197</td></tr>
+<tr><td>60/40</td><td class="num">600</td><td class="num">400</td><td class="num">0.761</td><td class="num">0.175</td><td class="num">0.137</td><td class="num">0.205</td></tr>
+<tr><td>50/50</td><td class="num">500</td><td class="num">500</td><td class="num">0.745</td><td class="num">0.190</td><td class="num">0.124</td><td class="num">0.215</td></tr>
+<tr class="settled"><td rowspan="5" class="num">2,000</td><td>90/10</td><td class="num">1,800</td><td class="num">200</td><td class="num">0.826</td><td class="num">0.098</td><td class="num">0.139</td><td class="num">0.133</td></tr>
+<tr><td>80/20</td><td class="num">1,600</td><td class="num">400</td><td class="num">0.820</td><td class="num">0.105</td><td class="num">0.101</td><td class="num">0.134</td></tr>
+<tr><td>70/30</td><td class="num">1,400</td><td class="num">600</td><td class="num">0.813</td><td class="num">0.112</td><td class="num">0.085</td><td class="num">0.138</td></tr>
+<tr><td>60/40</td><td class="num">1,200</td><td class="num">800</td><td class="num">0.806</td><td class="num">0.121</td><td class="num">0.076</td><td class="num">0.142</td></tr>
+<tr><td>50/50</td><td class="num">1,000</td><td class="num">1,000</td><td class="num">0.797</td><td class="num">0.131</td><td class="num">0.071</td><td class="num">0.148</td></tr>
+<tr><td rowspan="5" class="num">5,000</td><td>90/10</td><td class="num">4,500</td><td class="num">500</td><td class="num">0.873</td><td class="num">0.055</td><td class="num">0.060</td><td class="num">0.072</td></tr>
+<tr class="settled"><td>80/20</td><td class="num">4,000</td><td class="num">1,000</td><td class="num">0.868</td><td class="num">0.060</td><td class="num">0.045</td><td class="num">0.070</td></tr>
+<tr><td>70/30</td><td class="num">3,500</td><td class="num">1,500</td><td class="num">0.860</td><td class="num">0.066</td><td class="num">0.039</td><td class="num">0.076</td></tr>
+<tr><td>60/40</td><td class="num">3,000</td><td class="num">2,000</td><td class="num">0.851</td><td class="num">0.073</td><td class="num">0.035</td><td class="num">0.081</td></tr>
+<tr><td>50/50</td><td class="num">2,500</td><td class="num">2,500</td><td class="num">0.841</td><td class="num">0.082</td><td class="num">0.033</td><td class="num">0.088</td></tr>
+<tr class="settled"><td rowspan="5" class="num">10,000</td><td>90/10</td><td class="num">9,000</td><td class="num">1,000</td><td class="num">0.888</td><td class="num">0.040</td><td class="num">0.040</td><td class="num">0.042</td></tr>
+<tr><td>80/20</td><td class="num">8,000</td><td class="num">2,000</td><td class="num">0.887</td><td class="num">0.044</td><td class="num">0.031</td><td class="num">0.046</td></tr>
+<tr><td>70/30</td><td class="num">7,000</td><td class="num">3,000</td><td class="num">0.885</td><td class="num">0.048</td><td class="num">0.025</td><td class="num">0.050</td></tr>
+<tr><td>60/40</td><td class="num">6,000</td><td class="num">4,000</td><td class="num">0.881</td><td class="num">0.053</td><td class="num">0.022</td><td class="num">0.056</td></tr>
+<tr><td>50/50</td><td class="num">5,000</td><td class="num">5,000</td><td class="num">0.877</td><td class="num">0.050</td><td class="num">0.015</td><td class="num">0.052</td></tr>
+<tr class="settled"><td rowspan="5" class="num">20,000</td><td>90/10</td><td class="num">18,000</td><td class="num">2,000</td><td class="num">0.895</td><td class="num">0.023</td><td class="num">0.027</td><td class="num">0.024</td></tr>
+<tr><td>80/20</td><td class="num">16,000</td><td class="num">4,000</td><td class="num">0.894</td><td class="num">0.026</td><td class="num">0.018</td><td class="num">0.026</td></tr>
+<tr><td>70/30</td><td class="num">14,000</td><td class="num">6,000</td><td class="num">0.892</td><td class="num">0.029</td><td class="num">0.014</td><td class="num">0.029</td></tr>
+<tr><td>60/40</td><td class="num">12,000</td><td class="num">8,000</td><td class="num">0.891</td><td class="num">0.032</td><td class="num">0.012</td><td class="num">0.033</td></tr>
+<tr><td>50/50</td><td class="num">10,000</td><td class="num">10,000</td><td class="num">0.889</td><td class="num">0.036</td><td class="num">0.010</td><td class="num">0.037</td></tr>
+<!-- median over 16 cells -->
+</tbody></table></div><div class="scroll"><table><thead><tr><th class="num">N</th><th class="num">80/20 beats 50/50</th><th class="num">80/20 is best</th><th class="num">70/30 is best</th><th class="num">90/10 is best</th></tr></thead><tbody>
+<tr><td class="num">200</td><td class="num">9 of 18</td><td class="num">1 of 18</td><td class="num">9 of 18</td><td class="num">1 of 18</td></tr>
+<tr><td class="num">500</td><td class="num">15 of 18</td><td class="num">9 of 18</td><td class="num">2 of 18</td><td class="num">4 of 18</td></tr>
+<tr><td class="num">1,000</td><td class="num">16 of 18</td><td class="num">9 of 18</td><td class="num">4 of 18</td><td class="num">3 of 18</td></tr>
+<tr><td class="num">2,000</td><td class="num">16 of 18</td><td class="num">8 of 18</td><td class="num">2 of 18</td><td class="num">6 of 18</td></tr>
+<tr><td class="num">5,000</td><td class="num">18 of 18</td><td class="num">9 of 18</td><td class="num">0 of 18</td><td class="num">9 of 18</td></tr>
+<tr><td class="num">10,000</td><td class="num">16 of 16</td><td class="num">11 of 16</td><td class="num">0 of 16</td><td class="num">5 of 16</td></tr>
+<tr><td class="num">20,000</td><td class="num">16 of 16</td><td class="num">8 of 16</td><td class="num">0 of 16</td><td class="num">8 of 16</td></tr>
+</tbody></table></div></div></details><div class="call">
+<p><strong>Shortfall costs more than spread at every dataset size from 500 up, so the minimum sits on the training side of an even split.</strong> 80/20 beats 50/50 in <span data-live="win500">15</span> of <span data-live="cells">18</span> cells at 500 materials, 16 at 1,000 and 2,000, and every cell from 5,000 up. 80/20 has the lowest median total error at 500 and 5,000; at 1,000 and 2,000 90/10 edges it by 0.004 and 0.001 while 80/20 wins more cells, 9 to 3 and 8 to 6; at 10,000 and 20,000 90/10 is lower by 0.003 and 0.002 and the cells split 11 to 5 for 80/20 and 8 to 8. At 200 materials the median minimum is 70/30 and 80/20 beats the even split in only 9 of 18 &mdash; but 200 is far below the floor this page settles on.</p>
+</div>
+
+<h2 id="composition">3 &middot; Does the embedding add anything beyond composition?</h2>
 <p class="sub">Magpie is run once: the same probe on 132 composition-only features, on the same frozen test set and the same training draws as both embeddings. Each panel subtracts that one Magpie score from the ORB-v3 score and from the UMA-S score on the same draw, so the two lines share a baseline and differ only in the embedding.</p>
 <p class="keyline"><span class="key"><i class="kc" style="background:var(--orb)"></i>ORB-v3 score, less Magpie</span><span class="key"><i class="kc" style="background:var(--uma)"></i>UMA-S score, less Magpie</span><span class="key"><i class="kb"></i>band: p10&ndash;p90 of the paired difference</span><span class="key"><i class="kc" style="background:var(--ink)"></i>zero: the formula does as well</span></p>
 <div class="grid">
@@ -1347,178 +1539,7 @@ materials formation energy is essentially at its ceiling, while crystal system i
 <tr class="settled hl-uma"><td class="num">20,000</td><td class="num">6</td><td class="num">+0.049</td><td class="num">+0.048</td><td class="num">+0.053</td><td class="num">100&nbsp;%</td></tr>
 </tbody></table></div>
 </div></details>
-<h2 id="split">Where to put the split</h2>
-<p class="sub">Total error against the train/test fraction, at six dataset sizes from 200 to 10,000; the full-data tables below add 20,000.</p>
-<p>With a fixed number of materials, every split has to decide how many go into the test set, and that choice moves two errors in opposite directions. Fewer materials for training means the probe scores lower than it would with more data: the <strong>shortfall</strong>, read off the training-size curve. More materials for testing means the score is measured more precisely: the <strong>spread</strong>, read off the test-size curve. For each split the page reads both off the curves and combines them into one total error; the lowest point on the plot below is the best split for that dataset size.</p>
-<p><strong>How the two are combined.</strong> The shortfall is a fixed offset: the score sits that far below its ceiling every time. The spread is random: a re-split moves the score up or down. A fixed error and a random one combine as &radic;(shortfall&sup2;&nbsp;+&nbsp;sd&sup2;), where sd is the random error expressed as a standard deviation. The spread on this page is the width between the 10th and 90th percentile of the score across draws, which for a normal distribution is 2.5631 standard deviations; the page estimates it as exactly that, so sd&nbsp;=&nbsp;spread&nbsp;&divide;&nbsp;2.5631 recovers the standard deviation. One adjustment comes first: a probe that scores lower scatters more, so the spread is scaled up by (1&nbsp;&minus;&nbsp;score)/(1&nbsp;&minus;&nbsp;ceiling), as in the calculator.</p>
-<div class="sfx">
-  <div class="ctl">
-    <span class="ctl-lab">dataset size</span>
-    <div class="seg" id="sfxN" role="radiogroup" aria-label="dataset size">
-      <button type="button" data-n="200" role="radio" aria-checked="false">200</button>
-      <button type="button" data-n="500" role="radio" aria-checked="false">500</button>
-      <button type="button" data-n="1000" class="on" role="radio" aria-checked="true">1,000</button>
-      <button type="button" data-n="2000" role="radio" aria-checked="false">2,000</button>
-      <button type="button" data-n="5000" role="radio" aria-checked="false">5,000</button>
-      <button type="button" data-n="10000" role="radio" aria-checked="false">10,000</button>
-    </div>
-    <span class="ctl-lab">target</span>
-    <select id="sfxT" class="try-sel" style="flex:0 1 200px"></select>
-  </div>
-  <svg id="sfxChart" viewBox="0 0 700 260" role="img" aria-label="total error against test fraction"></svg>
-  <p class="sfx-cap" id="sfxCap"></p>
-</div>
-<details class="every"><summary>Full data &mdash; total error at every split fraction, and which fraction won in each cell</summary><div class="inner"><div class="scroll"><table>
-<thead><tr><th class="num">N</th><th>split</th><th class="num">train</th><th class="num">test</th><th class="num">score</th><th class="num">shortfall</th><th class="num">spread</th><th class="num">total error</th></tr></thead>
-<tbody>
-<tr><td rowspan="5" class="num">200</td><td>90/10</td><td class="num">180</td><td class="num">20</td><td class="num">0.608</td><td class="num">0.309</td><td class="num">1.052</td><td class="num">0.506</td></tr>
-<tr><td>80/20</td><td class="num">160</td><td class="num">40</td><td class="num">0.592</td><td class="num">0.319</td><td class="num">0.727</td><td class="num">0.394</td></tr>
-<tr class="settled"><td>70/30</td><td class="num">140</td><td class="num">60</td><td class="num">0.575</td><td class="num">0.330</td><td class="num">0.607</td><td class="num">0.384</td></tr>
-<tr><td>60/40</td><td class="num">120</td><td class="num">80</td><td class="num">0.554</td><td class="num">0.343</td><td class="num">0.566</td><td class="num">0.390</td></tr>
-<tr><td>50/50</td><td class="num">100</td><td class="num">100</td><td class="num">0.530</td><td class="num">0.358</td><td class="num">0.543</td><td class="num">0.406</td></tr>
-<tr><td rowspan="5" class="num">500</td><td>90/10</td><td class="num">450</td><td class="num">50</td><td class="num">0.729</td><td class="num">0.204</td><td class="num">0.393</td><td class="num">0.282</td></tr>
-<tr class="settled"><td>80/20</td><td class="num">400</td><td class="num">100</td><td class="num">0.713</td><td class="num">0.219</td><td class="num">0.317</td><td class="num">0.267</td></tr>
-<tr><td>70/30</td><td class="num">350</td><td class="num">150</td><td class="num">0.696</td><td class="num">0.237</td><td class="num">0.281</td><td class="num">0.279</td></tr>
-<tr><td>60/40</td><td class="num">300</td><td class="num">200</td><td class="num">0.675</td><td class="num">0.257</td><td class="num">0.253</td><td class="num">0.295</td></tr>
-<tr><td>50/50</td><td class="num">250</td><td class="num">250</td><td class="num">0.651</td><td class="num">0.279</td><td class="num">0.245</td><td class="num">0.311</td></tr>
-<tr class="settled"><td rowspan="5" class="num">1,000</td><td>90/10</td><td class="num">900</td><td class="num">100</td><td class="num">0.791</td><td class="num">0.140</td><td class="num">0.236</td><td class="num">0.190</td></tr>
-<tr><td>80/20</td><td class="num">800</td><td class="num">200</td><td class="num">0.784</td><td class="num">0.150</td><td class="num">0.176</td><td class="num">0.194</td></tr>
-<tr><td>70/30</td><td class="num">700</td><td class="num">300</td><td class="num">0.776</td><td class="num">0.162</td><td class="num">0.154</td><td class="num">0.197</td></tr>
-<tr><td>60/40</td><td class="num">600</td><td class="num">400</td><td class="num">0.761</td><td class="num">0.175</td><td class="num">0.137</td><td class="num">0.205</td></tr>
-<tr><td>50/50</td><td class="num">500</td><td class="num">500</td><td class="num">0.745</td><td class="num">0.190</td><td class="num">0.124</td><td class="num">0.215</td></tr>
-<tr class="settled"><td rowspan="5" class="num">2,000</td><td>90/10</td><td class="num">1,800</td><td class="num">200</td><td class="num">0.826</td><td class="num">0.098</td><td class="num">0.139</td><td class="num">0.133</td></tr>
-<tr><td>80/20</td><td class="num">1,600</td><td class="num">400</td><td class="num">0.820</td><td class="num">0.105</td><td class="num">0.101</td><td class="num">0.134</td></tr>
-<tr><td>70/30</td><td class="num">1,400</td><td class="num">600</td><td class="num">0.813</td><td class="num">0.112</td><td class="num">0.085</td><td class="num">0.138</td></tr>
-<tr><td>60/40</td><td class="num">1,200</td><td class="num">800</td><td class="num">0.806</td><td class="num">0.121</td><td class="num">0.076</td><td class="num">0.142</td></tr>
-<tr><td>50/50</td><td class="num">1,000</td><td class="num">1,000</td><td class="num">0.797</td><td class="num">0.131</td><td class="num">0.071</td><td class="num">0.148</td></tr>
-<tr><td rowspan="5" class="num">5,000</td><td>90/10</td><td class="num">4,500</td><td class="num">500</td><td class="num">0.873</td><td class="num">0.055</td><td class="num">0.060</td><td class="num">0.072</td></tr>
-<tr class="settled"><td>80/20</td><td class="num">4,000</td><td class="num">1,000</td><td class="num">0.868</td><td class="num">0.060</td><td class="num">0.045</td><td class="num">0.070</td></tr>
-<tr><td>70/30</td><td class="num">3,500</td><td class="num">1,500</td><td class="num">0.860</td><td class="num">0.066</td><td class="num">0.039</td><td class="num">0.076</td></tr>
-<tr><td>60/40</td><td class="num">3,000</td><td class="num">2,000</td><td class="num">0.851</td><td class="num">0.073</td><td class="num">0.035</td><td class="num">0.081</td></tr>
-<tr><td>50/50</td><td class="num">2,500</td><td class="num">2,500</td><td class="num">0.841</td><td class="num">0.082</td><td class="num">0.033</td><td class="num">0.088</td></tr>
-<tr class="settled"><td rowspan="5" class="num">10,000</td><td>90/10</td><td class="num">9,000</td><td class="num">1,000</td><td class="num">0.888</td><td class="num">0.040</td><td class="num">0.040</td><td class="num">0.042</td></tr>
-<tr><td>80/20</td><td class="num">8,000</td><td class="num">2,000</td><td class="num">0.887</td><td class="num">0.044</td><td class="num">0.031</td><td class="num">0.046</td></tr>
-<tr><td>70/30</td><td class="num">7,000</td><td class="num">3,000</td><td class="num">0.885</td><td class="num">0.048</td><td class="num">0.025</td><td class="num">0.050</td></tr>
-<tr><td>60/40</td><td class="num">6,000</td><td class="num">4,000</td><td class="num">0.881</td><td class="num">0.053</td><td class="num">0.022</td><td class="num">0.056</td></tr>
-<tr><td>50/50</td><td class="num">5,000</td><td class="num">5,000</td><td class="num">0.877</td><td class="num">0.050</td><td class="num">0.015</td><td class="num">0.052</td></tr>
-<tr class="settled"><td rowspan="5" class="num">20,000</td><td>90/10</td><td class="num">18,000</td><td class="num">2,000</td><td class="num">0.895</td><td class="num">0.023</td><td class="num">0.027</td><td class="num">0.024</td></tr>
-<tr><td>80/20</td><td class="num">16,000</td><td class="num">4,000</td><td class="num">0.894</td><td class="num">0.026</td><td class="num">0.018</td><td class="num">0.026</td></tr>
-<tr><td>70/30</td><td class="num">14,000</td><td class="num">6,000</td><td class="num">0.892</td><td class="num">0.029</td><td class="num">0.014</td><td class="num">0.029</td></tr>
-<tr><td>60/40</td><td class="num">12,000</td><td class="num">8,000</td><td class="num">0.891</td><td class="num">0.032</td><td class="num">0.012</td><td class="num">0.033</td></tr>
-<tr><td>50/50</td><td class="num">10,000</td><td class="num">10,000</td><td class="num">0.889</td><td class="num">0.036</td><td class="num">0.010</td><td class="num">0.037</td></tr>
-<!-- median over 16 cells -->
-</tbody></table></div><div class="scroll"><table><thead><tr><th class="num">N</th><th class="num">80/20 beats 50/50</th><th class="num">80/20 is best</th><th class="num">70/30 is best</th><th class="num">90/10 is best</th></tr></thead><tbody>
-<tr><td class="num">200</td><td class="num">9 of 18</td><td class="num">1 of 18</td><td class="num">9 of 18</td><td class="num">1 of 18</td></tr>
-<tr><td class="num">500</td><td class="num">15 of 18</td><td class="num">9 of 18</td><td class="num">2 of 18</td><td class="num">4 of 18</td></tr>
-<tr><td class="num">1,000</td><td class="num">16 of 18</td><td class="num">9 of 18</td><td class="num">4 of 18</td><td class="num">3 of 18</td></tr>
-<tr><td class="num">2,000</td><td class="num">16 of 18</td><td class="num">8 of 18</td><td class="num">2 of 18</td><td class="num">6 of 18</td></tr>
-<tr><td class="num">5,000</td><td class="num">18 of 18</td><td class="num">9 of 18</td><td class="num">0 of 18</td><td class="num">9 of 18</td></tr>
-<tr><td class="num">10,000</td><td class="num">16 of 16</td><td class="num">11 of 16</td><td class="num">0 of 16</td><td class="num">5 of 16</td></tr>
-<tr><td class="num">20,000</td><td class="num">16 of 16</td><td class="num">8 of 16</td><td class="num">0 of 16</td><td class="num">8 of 16</td></tr>
-</tbody></table></div></div></details><div class="call">
-<p><strong>Shortfall costs more than spread at every dataset size from 500 up, so the minimum sits on the training side of an even split.</strong> 80/20 beats 50/50 in <span data-live="win500">15</span> of <span data-live="cells">18</span> cells at 500 materials, 16 at 1,000 and 2,000, and every cell from 5,000 up. 80/20 has the lowest median total error at 500 and 5,000; at 1,000 and 2,000 90/10 edges it by 0.004 and 0.001 while 80/20 wins more cells, 9 to 3 and 8 to 6; at 10,000 and 20,000 90/10 is lower by 0.003 and 0.002 and the cells split 11 to 5 for 80/20 and 8 to 8. At 200 materials the median minimum is 70/30 and 80/20 beats the even split in only 9 of 18 &mdash; but 200 is far below the floor this page settles on.</p>
-</div>
-
-<h2 id="floor">Choosing the floors</h2>
-<p class="sub">Two floors, one per axis: a training size read off the shortfall, and a test size read off the spread. XGBoost, each target the mean of ORB-v3 and UMA-S.</p>
-
-<div class="cvx floor-box">
-  <div class="cvx-strip"><div class="cvx-stat"><span class="k">training floor</span><span class="v">5,000</span></div><div class="cvx-stat"><span class="k">median shortfall there</span><span class="v">0.058</span></div><div class="cvx-stat"><span class="k">test floor</span><span class="v">500</span></div><div class="cvx-stat"><span class="k">median spread there</span><span class="v">0.046 (&plusmn;0.023)</span></div><div class="cvx-stat"><span class="k">materials at 80/20</span><span class="v">6,250</span></div></div>
-  <p class="keyline"><span class="key"><i class="kc" style="background:var(--ink)"></i>median across targets</span><span class="key"><i class="kb" style="background:var(--ink)"></i>band: middle half of targets</span><span class="key"><i class="kd"></i>dashed: spread of 0.05</span><span class="key"><i class="kd" style="border-top-style:dotted;border-color:var(--ink)"></i>dotted: the floor</span></p>
-  <div class="grid grid-2"><figure class="panel"><figcaption>training floor</figcaption><svg viewBox="0 0 330 218" role="img" aria-label="training floor"><line x1="50" y1="162.0" x2="304" y2="162.0" style="stroke:var(--rule,#DDE1E4);stroke-width:1"/><text x="44" y="165.5" text-anchor="end" font-size="9" fill="var(--muted,#5B646E)" font-family="monospace">-0.04</text><line x1="50" y1="113.3" x2="304" y2="113.3" style="stroke:var(--rule,#DDE1E4);stroke-width:1"/><text x="44" y="116.8" text-anchor="end" font-size="9" fill="var(--muted,#5B646E)" font-family="monospace">0.20</text><line x1="50" y1="64.7" x2="304" y2="64.7" style="stroke:var(--rule,#DDE1E4);stroke-width:1"/><text x="44" y="68.2" text-anchor="end" font-size="9" fill="var(--muted,#5B646E)" font-family="monospace">0.43</text><line x1="50" y1="16.0" x2="304" y2="16.0" style="stroke:var(--rule,#DDE1E4);stroke-width:1"/><text x="44" y="19.5" text-anchor="end" font-size="9" fill="var(--muted,#5B646E)" font-family="monospace">0.67</text><line x1="245.2" y1="16" x2="245.2" y2="162" style="stroke:var(--ink,#16191D);stroke-width:1;stroke-dasharray:2 3"/><text x="249.2" y="24" font-size="8.5" fill="var(--ink,#16191D)" font-family="monospace">floor 5k</text><polygon points="50.0,26.1 79.4,54.9 108.8,82.6 147.6,104.1 177.0,117.1 206.4,127.8 245.2,138.7 259.5,141.5 274.6,144.3 304.0,148.0 304.0,151.9 274.6,150.3 259.5,149.3 245.2,148.1 206.4,144.8 177.0,141.0 147.6,136.2 108.8,125.7 79.4,111.4 50.0,93.9" style="fill:var(--ink,#16191D);fill-opacity:0.13;stroke:none"/><polyline points="50.0,53.8 79.4,74.5 108.8,88.8 147.6,109.9 177.0,123.0 206.4,132.4 245.2,142.0 259.5,144.3 274.6,146.7 304.0,149.7" style="fill:none;stroke:var(--ink,#16191D);stroke-width:1.8"/><circle cx="50.0" cy="53.8" r="2.2" style="fill:var(--ink,#16191D)"/><circle cx="79.4" cy="74.5" r="2.2" style="fill:var(--ink,#16191D)"/><circle cx="108.8" cy="88.8" r="2.2" style="fill:var(--ink,#16191D)"/><circle cx="147.6" cy="109.9" r="2.2" style="fill:var(--ink,#16191D)"/><circle cx="177.0" cy="123.0" r="2.2" style="fill:var(--ink,#16191D)"/><circle cx="206.4" cy="132.4" r="2.2" style="fill:var(--ink,#16191D)"/><circle cx="245.2" cy="142.0" r="2.2" style="fill:var(--ink,#16191D)"/><circle cx="259.5" cy="144.3" r="2.2" style="fill:var(--ink,#16191D)"/><circle cx="274.6" cy="146.7" r="2.2" style="fill:var(--ink,#16191D)"/><circle cx="304.0" cy="149.7" r="2.2" style="fill:var(--ink,#16191D)"/><line x1="50.0" y1="178" x2="50.0" y2="181" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="50.0" y="189" text-anchor="middle" font-size="8.5" fill="var(--muted,#5B646E)" font-family="monospace">50</text><line x1="79.4" y1="178" x2="79.4" y2="181" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="79.4" y="189" text-anchor="middle" font-size="8.5" fill="var(--muted,#5B646E)" font-family="monospace">100</text><line x1="108.8" y1="178" x2="108.8" y2="181" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="108.8" y="189" text-anchor="middle" font-size="8.5" fill="var(--muted,#5B646E)" font-family="monospace">200</text><line x1="147.6" y1="178" x2="147.6" y2="181" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="147.6" y="189" text-anchor="middle" font-size="8.5" fill="var(--muted,#5B646E)" font-family="monospace">500</text><line x1="177.0" y1="178" x2="177.0" y2="181" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="177.0" y="189" text-anchor="middle" font-size="8.5" fill="var(--muted,#5B646E)" font-family="monospace">1k</text><line x1="206.4" y1="178" x2="206.4" y2="181" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="206.4" y="189" text-anchor="middle" font-size="8.5" fill="var(--muted,#5B646E)" font-family="monospace">2k</text><line x1="245.2" y1="178" x2="245.2" y2="181" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="245.2" y="189" text-anchor="middle" font-size="8.5" fill="var(--muted,#5B646E)" font-family="monospace">5k</text><line x1="259.5" y1="178" x2="259.5" y2="181" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="259.5" y="198" text-anchor="middle" font-size="8.5" fill="var(--muted,#5B646E)" font-family="monospace">7k</text><line x1="274.6" y1="178" x2="274.6" y2="181" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="274.6" y="189" text-anchor="middle" font-size="8.5" fill="var(--muted,#5B646E)" font-family="monospace">10k</text><line x1="304.0" y1="178" x2="304.0" y2="181" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="304.0" y="189" text-anchor="middle" font-size="8.5" fill="var(--muted,#5B646E)" font-family="monospace">20k</text><line x1="50" y1="178" x2="304" y2="178" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="177" y="212" text-anchor="middle" font-size="9.5" fill="var(--muted,#5B646E)">number of training materials</text><text transform="rotate(-90)" x="-89" y="11" text-anchor="middle" font-size="9.5" fill="var(--muted,#5B646E)">shortfall from ceiling</text></svg></figure><figure class="panel"><figcaption>test floor</figcaption><svg viewBox="0 0 330 218" role="img" aria-label="test floor"><line x1="50" y1="162.0" x2="304" y2="162.0" style="stroke:var(--rule,#DDE1E4);stroke-width:1"/><text x="44" y="165.5" text-anchor="end" font-size="9" fill="var(--muted,#5B646E)" font-family="monospace">-0.02</text><line x1="50" y1="113.3" x2="304" y2="113.3" style="stroke:var(--rule,#DDE1E4);stroke-width:1"/><text x="44" y="116.8" text-anchor="end" font-size="9" fill="var(--muted,#5B646E)" font-family="monospace">0.11</text><line x1="50" y1="64.7" x2="304" y2="64.7" style="stroke:var(--rule,#DDE1E4);stroke-width:1"/><text x="44" y="68.2" text-anchor="end" font-size="9" fill="var(--muted,#5B646E)" font-family="monospace">0.25</text><line x1="50" y1="16.0" x2="304" y2="16.0" style="stroke:var(--rule,#DDE1E4);stroke-width:1"/><text x="44" y="19.5" text-anchor="end" font-size="9" fill="var(--muted,#5B646E)" font-family="monospace">0.38</text><line x1="50" y1="135.8" x2="304" y2="135.8" style="stroke:var(--ink,#16191D);stroke-width:1.2;stroke-dasharray:4 3;opacity:0.9"/><line x1="181.6" y1="16" x2="181.6" y2="162" style="stroke:var(--ink,#16191D);stroke-width:1;stroke-dasharray:2 3"/><text x="185.6" y="24" font-size="8.5" fill="var(--ink,#16191D)" font-family="monospace">floor 500</text><polygon points="50.0,26.1 87.5,77.1 115.8,102.1 144.1,108.5 181.6,125.1 209.9,138.2 238.2,142.7 275.7,147.2 304.0,149.5 304.0,151.9 275.7,151.1 238.2,147.9 209.9,145.5 181.6,142.7 144.1,134.3 115.8,127.9 87.5,112.7 50.0,90.1" style="fill:var(--ink,#16191D);fill-opacity:0.13;stroke:none"/><polyline points="50.0,63.7 87.5,108.6 115.8,115.4 144.1,125.7 181.6,137.1 209.9,142.4 238.2,146.5 275.7,150.4 304.0,151.1" style="fill:none;stroke:var(--ink,#16191D);stroke-width:1.8"/><circle cx="50.0" cy="63.7" r="2.2" style="fill:var(--ink,#16191D)"/><circle cx="87.5" cy="108.6" r="2.2" style="fill:var(--ink,#16191D)"/><circle cx="115.8" cy="115.4" r="2.2" style="fill:var(--ink,#16191D)"/><circle cx="144.1" cy="125.7" r="2.2" style="fill:var(--ink,#16191D)"/><circle cx="181.6" cy="137.1" r="2.2" style="fill:var(--ink,#16191D)"/><circle cx="209.9" cy="142.4" r="2.2" style="fill:var(--ink,#16191D)"/><circle cx="238.2" cy="146.5" r="2.2" style="fill:var(--ink,#16191D)"/><circle cx="275.7" cy="150.4" r="2.2" style="fill:var(--ink,#16191D)"/><circle cx="304.0" cy="151.1" r="2.2" style="fill:var(--ink,#16191D)"/><line x1="50.0" y1="178" x2="50.0" y2="181" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="50.0" y="189" text-anchor="middle" font-size="8.5" fill="var(--muted,#5B646E)" font-family="monospace">20</text><line x1="87.5" y1="178" x2="87.5" y2="181" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="87.5" y="189" text-anchor="middle" font-size="8.5" fill="var(--muted,#5B646E)" font-family="monospace">50</text><line x1="115.8" y1="178" x2="115.8" y2="181" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="115.8" y="189" text-anchor="middle" font-size="8.5" fill="var(--muted,#5B646E)" font-family="monospace">100</text><line x1="144.1" y1="178" x2="144.1" y2="181" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="144.1" y="189" text-anchor="middle" font-size="8.5" fill="var(--muted,#5B646E)" font-family="monospace">200</text><line x1="181.6" y1="178" x2="181.6" y2="181" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="181.6" y="189" text-anchor="middle" font-size="8.5" fill="var(--muted,#5B646E)" font-family="monospace">500</text><line x1="209.9" y1="178" x2="209.9" y2="181" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="209.9" y="189" text-anchor="middle" font-size="8.5" fill="var(--muted,#5B646E)" font-family="monospace">1k</text><line x1="238.2" y1="178" x2="238.2" y2="181" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="238.2" y="189" text-anchor="middle" font-size="8.5" fill="var(--muted,#5B646E)" font-family="monospace">2k</text><line x1="275.7" y1="178" x2="275.7" y2="181" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="275.7" y="189" text-anchor="middle" font-size="8.5" fill="var(--muted,#5B646E)" font-family="monospace">5k</text><line x1="304.0" y1="178" x2="304.0" y2="181" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="304.0" y="189" text-anchor="middle" font-size="8.5" fill="var(--muted,#5B646E)" font-family="monospace">10k</text><line x1="50" y1="178" x2="304" y2="178" style="stroke:var(--axis,#B9C0C6);stroke-width:1"/><text x="177" y="212" text-anchor="middle" font-size="9.5" fill="var(--muted,#5B646E)">number of test materials</text><text transform="rotate(-90)" x="-89" y="11" text-anchor="middle" font-size="9.5" fill="var(--muted,#5B646E)">spread (p10–p90)</text></svg></figure></div>
-</div>
-
-<div class="floor-cols">
-<div>
-<h3>Training floor: 5,000 materials</h3>
-<p>The shortfall is how far a score sits below the same probe's full-corpus score. It falls at every step of the grid:</p>
-<div class="scroll"><table class="compact">
-<thead><tr><th class="num">training<br>materials</th><th class="num">median<br>shortfall</th><th class="num">range across<br>targets</th><th class="num">materials<br>at 80/20</th></tr></thead>
-<tbody>
-<tr><td class="num">50</td><td class="num">0.487</td><td class="num">0.151&ndash;0.787</td><td class="num">62</td></tr>
-<tr><td class="num">100</td><td class="num">0.386</td><td class="num">0.108&ndash;0.535</td><td class="num">125</td></tr>
-<tr><td class="num">200</td><td class="num">0.317</td><td class="num">0.083&ndash;0.417</td><td class="num">250</td></tr>
-<tr><td class="num">500</td><td class="num">0.214</td><td class="num">0.057&ndash;0.287</td><td class="num">625</td></tr>
-<tr><td class="num">1,000</td><td class="num">0.150</td><td class="num">0.045&ndash;0.228</td><td class="num">1,250</td></tr>
-<tr><td class="num">2,000</td><td class="num">0.105</td><td class="num">0.033&ndash;0.187</td><td class="num">2,500</td></tr>
-<tr class="settled"><td class="num">5,000</td><td class="num">0.058</td><td class="num">0.017&ndash;0.128</td><td class="num">6,250</td></tr>
-<tr><td class="num">7,000</td><td class="num">0.047</td><td class="num">0.013&ndash;0.110</td><td class="num">8,750</td></tr>
-<tr><td class="num">10,000</td><td class="num">0.035</td><td class="num">0.010&ndash;0.090</td><td class="num">12,500</td></tr>
-<tr><td class="num">20,000</td><td class="num">0.021</td><td class="num">0.006&ndash;0.050</td><td class="num">25,000</td></tr>
-</tbody></table></div>
-<p>Median and range over the eight targets measured at every size; bulk modulus is left out because its corpus stops the curve at 5,000. The highlighted row is the floor.</p>
-<p>There is no knee. Up to 2,000 the median target is more than 0.10 short, so a score there is mainly a lower bound. From 5,000 to 20,000 each step buys 0.011&ndash;0.014 of shortfall and costs progressively more data &mdash; 40&nbsp;% more materials for the first step, then 43&nbsp;%, then 100&nbsp;%. The floor sits at 5,000, where the median target is 0.058 short; it is set by how much data it is reasonable to demand.</p>
-</div>
-<div>
-<h3>Test floor: 500 materials</h3>
-<p>The spread is how far a score moves when the test set is re-drawn: the p10&ndash;p90 width over 200 re-drawn test sets, scored with one probe trained on 20,000 materials.</p>
-<div class="scroll"><table class="compact">
-<thead><tr><th class="num">test<br>materials</th><th class="num">median<br>spread</th><th class="num">range across<br>targets</th><th class="num">&plusmn; on<br>one score</th></tr></thead>
-<tbody>
-<tr><td class="num">20</td><td class="num">0.250</td><td class="num">0.033&ndash;4.140</td><td class="num">&plusmn;0.125</td></tr>
-<tr><td class="num">50</td><td class="num">0.125</td><td class="num">0.028&ndash;0.507</td><td class="num">&plusmn;0.063</td></tr>
-<tr><td class="num">100</td><td class="num">0.107</td><td class="num">0.020&ndash;0.300</td><td class="num">&plusmn;0.053</td></tr>
-<tr><td class="num">200</td><td class="num">0.078</td><td class="num">0.015&ndash;0.189</td><td class="num">&plusmn;0.039</td></tr>
-<tr class="settled"><td class="num">500</td><td class="num">0.046</td><td class="num">0.012&ndash;0.117</td><td class="num">&plusmn;0.023</td></tr>
-<tr><td class="num">1,000</td><td class="num">0.032</td><td class="num">0.011&ndash;0.080</td><td class="num">&plusmn;0.016</td></tr>
-<tr><td class="num">2,000</td><td class="num">0.020</td><td class="num">0.007&ndash;0.059</td><td class="num">&plusmn;0.010</td></tr>
-<tr><td class="num">5,000</td><td class="num">0.009</td><td class="num">0.005&ndash;0.034</td><td class="num">&plusmn;0.005</td></tr>
-<tr><td class="num">10,000</td><td class="num">0.008</td><td class="num">0.003&ndash;0.019</td><td class="num">&plusmn;0.004</td></tr>
-</tbody></table></div>
-<p>Median and range over every target measured at that size; bulk modulus stops at 5,000, and the 20,000 point is the whole test set, a single score with no spread. The highlighted row is the floor.</p>
-
-<p>500 is the smallest size on the grid at which the median target's spread is under 0.05, about &plusmn;0.023 on one score. At 200 it is 0.078 (&plusmn;0.039), and the hardest target, magnetic density, moves by 0.189. Like the shortfall, the spread has no knee: it more than halves from 200 to 1,000 and keeps falling. At an 80/20 split the training floor already brings 1,250 test materials, above the test floor, so the test floor matters for smaller datasets and for other splits.</p>
-</div>
-</div>
-
-<p>ORB-v3 and UMA-S agree to within 0.029 at every size, and within 0.01 on all targets except energy above hull, where the gap is 0.013&ndash;0.029, and magnetic density at 5,000, where it is 0.011; both rank the targets in nearly the same order (rank correlation 0.88&ndash;0.93), so which targets need more data is a property of the task and not of either one.</p>
-
-
-<h3>Raising the floor does not fix the target that needs fixing</h3>
-<div class="scroll"><table>
-<thead><tr><th>target</th><th class="num">5,000</th><th class="num">7,000</th><th class="num">10,000</th><th class="num">20,000</th></tr></thead>
-<tbody>
-<tr><td>bulk modulus</td><td class="num">0.015</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td></tr>
-<tr><td>formation energy / atom</td><td class="num">0.017</td><td class="num">0.013</td><td class="num">0.010</td><td class="num">0.006</td></tr>
-<tr><td>metal / insulator</td><td class="num">0.023</td><td class="num">0.020</td><td class="num">0.016</td><td class="num">0.010</td></tr>
-<tr><td>magnetic / not</td><td class="num">0.030</td><td class="num">0.024</td><td class="num">0.019</td><td class="num">0.010</td></tr>
-<tr><td>energy above hull</td><td class="num">0.057</td><td class="num">0.046</td><td class="num">0.034</td><td class="num">0.021</td></tr>
-<tr><td>band gap</td><td class="num">0.059</td><td class="num">0.048</td><td class="num">0.037</td><td class="num">0.023</td></tr>
-<tr><td>density</td><td class="num">0.063</td><td class="num">0.050</td><td class="num">0.036</td><td class="num">0.021</td></tr>
-<tr><td>magnetic density</td><td class="num">0.108</td><td class="num">0.093</td><td class="num">0.076</td><td class="num">0.050</td></tr>
-<tr><td><strong>crystal system</strong></td><td class="num"><strong>0.128</strong></td><td class="num"><strong>0.110</strong></td><td class="num"><strong>0.090</strong></td><td class="num"><strong>0.048</strong></td></tr>
-<tr><td>span, hardest / easiest</td><td class="num">7.7&times;</td><td class="num">8.6&times;</td><td class="num">8.7&times;</td><td class="num">8.8&times;</td></tr>
-</tbody></table></div>
-
-<p>Bulk modulus stops at 5,000 because its corpus holds 12,853 materials, so a training set of 7,000 cannot be drawn alongside a disjoint reference set. It is left out of the pooled mean above for the same reason: including it would change what the column averages partway along the row.</p>
-
-<p>The span across targets widens with training data. Crystal system at 20,000 is still 0.048 short &mdash; worse than formation energy is at 5,000, on four times the data. A floor set high enough to bring crystal system within 0.05 of its ceiling would be 20,000, the largest size measured, and still leave the easy targets paying for it.</p>
-
-<h3>Floors for one property</h3>
-<p>Both floors describe the median target, and the targets differ by an order of magnitude on both axes. Anyone interested in a single property should set the floors from its own row:</p>
-<div class="scroll"><table>
-<thead><tr><th>target</th><th class="num">within 0.05 of its ceiling from<br>(training materials, ORB-v3 / UMA-S)</th><th class="num">spread at most 0.05 from<br>(test materials, ORB-v3 / UMA-S)</th></tr></thead>
-<tbody>
-<tr><td>formation energy / atom</td><td class="num">2,000 / 1,000</td><td class="num">20 / 20</td></tr>
-<tr><td>energy above hull</td><td class="num">10,000 / 5,000</td><td class="num">1,000 / 1,000</td></tr>
-<tr><td>band gap</td><td class="num">7,000 / 7,000</td><td class="num">5,000 / 5,000</td></tr>
-<tr><td>density</td><td class="num">7,000 / 7,000</td><td class="num">200 / 200</td></tr>
-<tr><td>magnetic density</td><td class="num">20,000&dagger; / 20,000&dagger;</td><td class="num">5,000 / 5,000</td></tr>
-<tr><td>bulk modulus</td><td class="num">2,000 / 2,000</td><td class="num">500 / 500</td></tr>
-<tr><td>crystal system</td><td class="num">20,000&dagger; / 20,000&dagger;</td><td class="num">1,000 / 1,000</td></tr>
-<tr><td>metal / insulator</td><td class="num">1,000 / 1,000</td><td class="num">500 / 500</td></tr>
-<tr><td>magnetic / not</td><td class="num">5,000 / 2,000</td><td class="num">500 / 500</td></tr>
-</tbody></table></div>
-<p>&dagger; reached only at the largest training size measured for that target. For formation energy alone, 2,000 training materials (1,000 with UMA-S) bring the score within 0.05 of its ceiling, and 20 test materials already hold its spread at or below 0.05. Band gap needs 7,000 training and 5,000 test materials. Crystal system and magnetic density reach their ceilings only at 20,000, the largest size measured, and magnetic density also needs 5,000 test materials.</p>
-
-<div class="call">
-<p><strong>The floors are 5,000 training and 500 test materials. At 80/20 the training floor takes 6,250 materials in total, which puts 1,250 in the test set.</strong></p>
-<p class="why">Neither curve has a natural cut. Both floors were chosen <em>after</em> seeing the curves, as the smallest sizes at which the median target's shortfall is small enough to report and its spread is under 0.05. They are judgements about what is reasonable to ask for.</p>
-</div>
-
-<p>A score below the training floor is not worthless &mdash; it is a lower bound, and should be reported as one, with its per-target shortfall beside it. Below the test floor it is noisier, and should be reported with its spread. Buying 0.011 of shortfall for another 2,500 materials is a trade for the reader to make.</p>
-
-<h2 id="cv">Cross-validation: which evaluation method is most reliable with limited data?</h2>
+<h2 id="cv">4 &middot; A methodological check: reusing the data</h2>
 <div class="call warn cv-pending"><p>The cross-validation comparison has not been run to completion yet; its results will appear here.</p></div>
 <div class="needs-cv">
 <p class="sub">Given a small dataset, which way of measuring a probe's score gives the most reliable estimate?</p>
@@ -1573,7 +1594,11 @@ materials formation energy is essentially at its ceiling, while crystal system i
 </figure>
 <p>Every dot sits below the dashed 0.95 line. Cross-validation's interval is the narrowest of the three, and it is the less reliable of the pair at 100, 200 and 2,000 materials on both embeddings and at 1,000 on UMA-S. Cross-validation is therefore the most accurate point estimate and the least reliable interval. For how much a score moves, quote the spread measured on this page for the test size in hand.</p>
 
-<h3>By property and dataset size</h3>
+<div class="call">
+<p><strong>Main conclusion.</strong> For limited datasets, 5-fold cross-validation is the best of the three procedures tested for estimating the score itself, and its advantage is largest when the dataset is very small. Five averaged splits come close; a single split is substantially noisier and should not be used. None of the reported 95&nbsp;% intervals reaches its stated coverage, cross-validation's least of all, so they should be read with caution, and the comparison carries the training-size mismatch described above.</p>
+</div>
+
+<details class="every"><summary>More on the cross-validation comparison &mdash; by property and size, what it does not change, and its limits</summary><div class="inner"><h3>By property and dataset size</h3>
 <div class="cvx">
   <div class="cvx-strip">
     <div class="cvx-stat"><span class="k">CV closer than five splits in</span><span class="v" data-live="cvWin3">84 %</span></div>
@@ -1630,10 +1655,6 @@ materials formation energy is essentially at its ceiling, while crystal system i
 </tbody></table></div>
 <p>At <span data-live="budN">2,000</span> materials cross-validation cuts the noise from <span data-live="budNoise1">0.020</span> (one split) to <span data-live="budNoiseCv">0.011</span>, and the total from <span data-live="budTot1">0.125</span> to <span data-live="budTotCv">0.124</span>, because the bias of <span data-live="budBias">0.123</span> dominates.</p>
 
-<div class="call">
-<p><strong>Main conclusion.</strong> For limited datasets, 5-fold cross-validation is the best of the three procedures tested for estimating the score itself, and its advantage is largest when the dataset is very small. Five averaged splits come close; a single split is substantially noisier and should not be used. None of the reported 95&nbsp;% intervals reaches its stated coverage, cross-validation's least of all, so they should be read with caution, and the comparison carries the training-size mismatch described above.</p>
-</div>
-
 <div class="limits">
 <span class="tag">what this does not settle</span>
 <ul>
@@ -1642,13 +1663,14 @@ materials formation energy is essentially at its ceiling, while crystal system i
 <li>Bulk modulus has fewer datasets above 500 materials (12, 6 and 3 at 500, 1,000 and 2,000) because its pool runs out.</li>
 </ul>
 </div>
+</div></details>
 </div>
 
 <h2 id="conclusion">Conclusion</h2>
 <ol class="concl">
-<li><strong>Use floors of 5,000 training and 500 test materials</strong>, 6,250 materials in total at 80/20. Targets differ five- to ninefold, so for a single property read its own row of the floors table.</li>
-<li><strong>Split 80/20.</strong><span class="needs-cv"> On small datasets, score with 5-fold cross-validation or five averaged splits, never a single split, and do not quote their 95&nbsp;% intervals as they stand.</span></li>
-<li><strong>Report the gain over composition per target.</strong> The embeddings beat Magpie from <span data-live="gainEarlyMaxN">500</span> training materials or fewer on <span data-live="gainEarlyCount">6</span> targets, from <span data-live="densityResolved">2,000</span> on density, and never on magnetic density.</li>
+<li><strong>Is the model trained on enough materials?</strong> Use a floor of 5,000 training materials. Targets differ five- to ninefold, so for a single property read its own row of the floors table.</li>
+<li><strong>Would another test set give the same score?</strong> Use a floor of 500 test materials and an 80/20 split; at 80/20 the training floor already brings 1,250 test materials.<span class="needs-cv"> On small datasets, score with 5-fold cross-validation or five averaged splits, never a single split, and do not quote their 95&nbsp;% intervals as they stand.</span></li>
+<li><strong>Does the embedding add anything beyond composition?</strong> Report the gain over composition per target. The embeddings beat Magpie from <span data-live="gainEarlyMaxN">500</span> training materials or fewer on <span data-live="gainEarlyCount">6</span> targets, from <span data-live="densityResolved">2,000</span> on density, and never on magnetic density.</li>
 </ol>
 
 <h2>References</h2>

@@ -1,4 +1,4 @@
-<title>Choosing a train/test regime under limited data</title>
+<title>Trustworthy benchmarks under limited data</title>
 <style>
 /* ---- theme tokens ------------------------------------------------------- */
 :root{
@@ -242,30 +242,40 @@ h2{scroll-margin-top:66px}
 <nav class="topnav"><div class="inner">
 <span class="brand">train / test under limited data</span>
 <ul>
+<li><a href="#questions">Questions</a></li>
 <li><a href="#calc">Calculator</a></li>
-<li><a href="#design">Design</a></li>
-<li><a href="#training">Training</a></li>
-<li><a href="#test">Test</a></li>
-<li><a href="#per-target">Per&nbsp;target</a></li>
-<li><a href="#composition">Composition</a></li>
+<li><a href="#design">Methods</a></li>
+<li><a href="#training">1&nbsp;Training</a></li>
+<li><a href="#test">2&nbsp;Testing</a></li>
 <li><a href="#split">Split</a></li>
-<li><a href="#floor">Floors</a></li>
-<li><a href="#cv">CV</a></li>
+<li><a href="#composition">3&nbsp;Composition</a></li>
+<li><a href="#cv">4&nbsp;CV</a></li>
 <li><a href="#conclusion">Conclusion</a></li>
 </ul></div></nav>
 <div class="wrap">
 <header>
 <p class="eyebrow">Companion to Stepurko,&nbsp;N. &amp; Laulainen,&nbsp;J. (2026), <em>Out-of-training properties in frozen interatomic potential embeddings are decodable and ordered by physical scale</em> &mdash; accepted at the AI4Sci and AI4Mat workshops, NeurIPS 2026. The paper is released in November 2026; the code and result tables behind this page are at <a href="https://github.com/Natalija-Stepurko/mlip-probe-data-requirements">mlip-probe-data-requirements</a>.</p>
-<h1>Choosing a train/test regime when data is limited</h1>
-<p class="lede">A probe trained on a few hundred materials gets a score. That score
-carries two errors that are usually conflated. The <strong>shortfall</strong> is how far
-it sits below what the same probe reaches on more data; it is set by training size and
-always points down. The <strong>spread</strong> is how far it moves when the split is
-redrawn; it is set by test size. This page measures the two separately, on frozen ORB-v3 and UMA-S embeddings over nine Materials Project properties, with
-composition-only Magpie features run on the same draws as a baseline, and uses the result
-to decide how much data is enough, where to put the split,<span class="needs-cv"> whether cross-validation is
-worth it,</span> and from how many materials an embedding's score says more than the formula.</p>
+<h1>When is a representation benchmark trustworthy under limited data?</h1>
+<p class="lede">An empirical study of how many labelled materials a probe on a frozen machine-learned interatomic potential needs before its score can be trusted: how far it sits below what more data would give, how much it moves with the test set, and how much of it the chemical formula alone explains.</p>
 </header>
+
+<h2 id="questions">Three questions behind every small-data benchmark</h2>
+<p class="sub">How much data do you need before a comparison between materials representations can be trusted? A score from a small dataset can mislead in three separate ways, and this page measures each one on frozen ORB-v3 and UMA-S embeddings over nine Materials Project properties.</p>
+<ol class="concl">
+<li><strong>Is the model trained on enough materials?</strong> A probe trained on few materials scores below what the same probe reaches with more data. That gap is the <em>shortfall</em>, and training size sets it.</li>
+<li><strong>Would another test set give the same score?</strong> A small test set gives a score that moves when the test set is redrawn. That movement is the <em>spread</em>, and test size sets it.</li>
+<li><strong>Does the embedding add anything beyond composition?</strong> A good score can come from the chemical formula alone. Composition-only Magpie features, run on the same draws, show how much of each score the embedding adds.</li>
+</ol>
+<div class="call">
+<p><strong>What the measurements show</strong></p>
+<ul class="why-list">
+<li><strong>Stability and sufficiency are different.</strong> Band gap gives a reproducible score from 500 training materials, but its score keeps rising until 7,000, where it comes within 0.05 of the full-data score.</li>
+<li><strong>There is no universal minimum dataset size.</strong> At 5,000 training materials the shortfall runs from <span data-live="gapEasy">0.017</span> on formation energy to <span data-live="gapHard">0.128</span> on crystal system.</li>
+<li><strong>A strong representation can lose to composition when data is scarce.</strong> Composition alone is ahead of both embeddings on density up to 500 training materials, and neither embedding resolvably beats it on magnetic density.</li>
+<li><strong>The limiting error switches with dataset size.</strong> At 200 materials a 70/30 split is best; from 500 up the shortfall dominates and the best split moves toward training.</li>
+<li><strong>80/20 works here for an empirical reason.</strong> From 500 materials up it is within 0.004 of the best split at every size measured.</li>
+</ul>
+</div>
 
 <h2 id="calc">What would my score mean?</h2>
 <p class="sub">Pick a target and two sizes. Everything below is how these numbers were
@@ -336,6 +346,14 @@ measured.</p>
 was measured on a probe trained on 20,000 materials (6,427 for bulk modulus). A probe trained on less sits
 further from its ceiling and scatters more, so the spread is scaled up by
 (1&minus;score)/(1&minus;ceiling) first. This treats the 20,000-material probe as if it were at its ceiling, so the scaled spread errs high.</p>
+<details class="every"><summary>The two errors in one paragraph, and what this page measures</summary><div class="inner"><p>A probe trained on a few hundred materials gets a score. That score
+carries two errors that are usually conflated. The <strong>shortfall</strong> is how far
+it sits below what the same probe reaches on more data; it is set by training size and
+always points down. The <strong>spread</strong> is how far it moves when the split is
+redrawn; it is set by test size. This page measures the two separately, on frozen ORB-v3 and UMA-S embeddings over nine Materials Project properties, with
+composition-only Magpie features run on the same draws as a baseline, and uses the result
+to decide how much data is enough, where to put the split,<span class="needs-cv"> whether cross-validation is
+worth it,</span> and from how many materials an embedding's score says more than the formula.</p>
 <div class="intro"><p><strong>What this page measures.</strong></p>
 <ul class="why-list">
 <li>The size of each error, in R&sup2; or macro-F1, for frozen ORB-v3 and UMA-S
@@ -369,24 +387,8 @@ properties in frozen interatomic potential embeddings are decodable and ordered 
 physical scale</em>, accepted at the AI4Sci and AI4Mat workshops, NeurIPS 2026. Magpie's ceilings are the same manuscript's
 composition-baseline control: the same probe on the Magpie features, full 80/20 split.</p></div>
 
-<h2 id="why">Known from the literature</h2>
-<ul class="why-list">
-<li>Test-set size sets the variance of a score; training-set size sets its bias
-(Hastie, Tibshirani &amp; Friedman, 2009, ch.&nbsp;7).</li>
-<li>At around 100 samples a cross-validated score carries error bars of roughly
-&plusmn;10&nbsp;% (Varoquaux, 2018).</li>
-<li>Learning curves rise monotonically with training size and rarely saturate at the
-sizes a study can afford (Cortes et al., 1994; Xu et al., 2023).</li>
-<li>Cross-validation estimates how well the <em>procedure</em> does on average at that
-training size, not how well the one model you fitted will do (Bates, Hastie &amp;
-Tibshirani, 2023).</li>
-<li>The k fold scores from one cross-validation are not independent &mdash; every pair
-of folds shares most of its training data &mdash; so no formula can turn their scatter
-into a correct error bar in general; any such estimate is biased (Bengio &amp;
-Grandvalet, 2004).<span class="needs-cv"> That is why this page measures interval coverage directly.</span></li>
-</ul>
-
-<h2 id="design">The design</h2>
+</div></details>
+<h2 id="design">How it was measured</h2>
 
 <p>Everything here is measured on <strong>154,875 Materials Project crystals</strong>,
 each represented by one frozen ORB-v3 or UMA-S embedding vector or by its 132 Magpie
@@ -481,7 +483,26 @@ draws per size, plus the full 20,000-material test set once. Bulk modulus stops 
 </div></div>
 </div></details>
 
-<h2 id="training">Training size sets the shortfall</h2>
+<details class="every"><summary>Known from the literature</summary><div class="inner">
+<ul class="why-list">
+<li>Test-set size sets the variance of a score; training-set size sets its bias
+(Hastie, Tibshirani &amp; Friedman, 2009, ch.&nbsp;7).</li>
+<li>At around 100 samples a cross-validated score carries error bars of roughly
+&plusmn;10&nbsp;% (Varoquaux, 2018).</li>
+<li>Learning curves rise monotonically with training size and rarely saturate at the
+sizes a study can afford (Cortes et al., 1994; Xu et al., 2023).</li>
+<li>Cross-validation estimates how well the <em>procedure</em> does on average at that
+training size, not how well the one model you fitted will do (Bates, Hastie &amp;
+Tibshirani, 2023).</li>
+<li>The k fold scores from one cross-validation are not independent &mdash; every pair
+of folds shares most of its training data &mdash; so no formula can turn their scatter
+into a correct error bar in general; any such estimate is biased (Bengio &amp;
+Grandvalet, 2004).<span class="needs-cv"> That is why this page measures interval coverage directly.</span></li>
+</ul>
+
+</div></details>
+<h2 id="training">1 &middot; Is the model trained on enough materials?</h2>
+<p class="sub">Training size sets the shortfall: how far a score sits below the same probe's full-corpus score.</p>
 <p class="keyline"><span class="key"><i class="kc" style="background:var(--orb)"></i>ORB-v3</span><span class="key"><i class="kc" style="background:var(--uma)"></i>UMA-S</span><span class="key"><i class="kc" style="background:var(--mag)"></i>Magpie, composition only</span><span class="key"><i class="kd"></i>dashed: that arm's full-corpus score</span><span class="key"><i class="kb"></i>band: p10&ndash;p90 across draws</span></p>
 
 <div class="ctl">
@@ -510,7 +531,61 @@ those differences on paired draws.</p>
 <tbody>
 <!--{{tbl_train}}-->
 </tbody></table></div>
-</div></details><h2 id="test">Test size sets the spread</h2>
+</div></details><h3>One number of materials cannot describe nine targets</h3>
+<p class="sub">Shortfall at 5,000 training materials, per target, for both embeddings and for Magpie. Each bar is measured against that arm's own full-corpus score.</p>
+<p class="keyline"><span class="key"><i class="kc" style="background:var(--orb)"></i>ORB-v3</span><span class="key"><i class="kc" style="background:var(--uma)"></i>UMA-S</span><span class="key"><i class="kc" style="background:var(--mag)"></i>Magpie, composition only</span></p>
+<!--{{fig_percell}}-->
+
+<p><strong>The same number of materials is
+<span data-live="gapEasy">0.017</span> short on one target and
+<span data-live="gapHard">0.128</span> short on another.</strong> At 5,000 training
+materials formation energy is essentially at its ceiling, while crystal system is still
+0.13 of macro-F1 below it &mdash; a span of about
+<span data-live="span5k">7.7</span>&times;. ORB-v3 and UMA-S agree to within <span data-live="embAgree">0.029</span> on every target at this size, and within 0.01 on seven of the nine. The largest gaps are on energy above hull and magnetic density, where ORB-v3 sits 0.03 and 0.01 further below its ceiling than UMA-S does. Both embeddings agree on which targets need more data. Magpie shows a narrower span, 5.2&times;, from 0.031 on metal&nbsp;/&nbsp;insulator to 0.159 on energy above hull. Both spans leave out bulk modulus, which has one draw at this size; with it, Magpie's span is 12.6&times; and the embeddings' 8.6&times;. Magpie sits further below its own ceiling than the embeddings do on five targets and closer to it on density, magnetic density, bulk modulus and crystal system.</p>
+
+<div class="scroll"><table>
+<thead><tr><th>training materials</th><th class="num">5,000</th><th class="num">7,000</th>
+<th class="num">10,000</th><th class="num">20,000</th></tr></thead>
+<tbody>
+<tr><td>span, hardest / easiest target</td>
+<td class="num" data-live="span-5000">7.7&times;</td>
+<td class="num" data-live="span-7000">8.6&times;</td>
+<td class="num" data-live="span-10000">8.7&times;</td>
+<td class="num" data-live="span-20000">8.8&times;</td></tr>
+</tbody></table></div>
+
+<div class="call">
+<p><strong>At one training size the targets sit far apart.</strong> At 5,000 the shortfall is <span data-live="gapEasy">0.017</span> on formation energy and <span data-live="gapHard">0.128</span> on crystal system &mdash; about <span data-live="span5k">7.7</span>&times; larger &mdash; and adding data widens the span between hardest and easiest target, to <span data-live="span-20000">8.8&times;</span> at 20,000. The shortfall is therefore reported per target alongside the score.</p>
+</div>
+<h3>Training floor: 5,000 materials</h3>
+<p>The shortfall is how far a score sits below the same probe's full-corpus score. It falls at every step of the grid:</p>
+<div class="scroll"><table class="compact">
+<thead><tr><th class="num">training<br>materials</th><th class="num">median<br>shortfall</th><th class="num">range across<br>targets</th><th class="num">materials<br>at 80/20</th></tr></thead>
+<tbody>
+<!--{{tbl_floor_train}}-->
+</tbody></table></div>
+<p>Median and range over the eight targets measured at every size; bulk modulus is left out because its corpus stops the curve at 5,000. The highlighted row is the floor.</p>
+<p>There is no knee. Up to 2,000 the median target is more than 0.10 short, so a score there is mainly a lower bound. From 5,000 to 20,000 each step buys 0.011&ndash;0.014 of shortfall and costs progressively more data &mdash; 40&nbsp;% more materials for the first step, then 43&nbsp;%, then 100&nbsp;%. The floor sits at 5,000, where the median target is 0.058 short; it is set by how much data it is reasonable to demand.</p>
+
+
+
+<p>ORB-v3 and UMA-S agree to within 0.029 at every size, and within 0.01 on all targets except energy above hull, where the gap is 0.013&ndash;0.029, and magnetic density at 5,000, where it is 0.011; both rank the targets in nearly the same order (rank correlation 0.88&ndash;0.93), so which targets need more data is a property of the task and not of either one.</p>
+
+
+<details class="every"><summary>Raising the floor does not fix the target that needs fixing &mdash; shortfall per target at 5,000 to 20,000</summary><div class="inner">
+<div class="scroll"><table>
+<thead><tr><th>target</th><th class="num">5,000</th><th class="num">7,000</th><th class="num">10,000</th><th class="num">20,000</th></tr></thead>
+<tbody>
+<!--{{tbl_shortfall_targets}}-->
+</tbody></table></div>
+
+<p>Bulk modulus stops at 5,000 because its corpus holds 12,853 materials, so a training set of 7,000 cannot be drawn alongside a disjoint reference set. It is left out of the pooled mean above for the same reason: including it would change what the column averages partway along the row.</p>
+
+<p>The span across targets widens with training data. Crystal system at 20,000 is still 0.048 short &mdash; worse than formation energy is at 5,000, on four times the data. A floor set high enough to bring crystal system within 0.05 of its ceiling would be 20,000, the largest size measured, and still leave the easy targets paying for it.</p>
+
+</div></details>
+<h2 id="test">2 &middot; Would another test set give the same score?</h2>
+<p class="sub">Test size sets the spread: how far a score moves when the test set is redrawn.</p>
 <p class="sub">The probe is fitted once on 20,000 materials (6,427 on bulk modulus); only the materials it is scored on change.</p>
 <p class="keyline"><span class="key"><i class="kc" style="background:var(--orb)"></i>ORB-v3</span><span class="key"><i class="kc" style="background:var(--uma)"></i>UMA-S</span><span class="key"><i class="kc" style="background:var(--mag)"></i>Magpie, composition only</span><span class="key"><i class="kd"></i>dashed: that arm's full-corpus score</span><span class="key"><i class="kb"></i>band: p10&ndash;p90 across draws</span></p>
 <!--{{fig_test}}-->
@@ -537,57 +612,44 @@ before combining spread with shortfall.</p>
 <p><strong>Test size moves the spread and little else.</strong> Across the grid the spread falls from 0.239 at 20 test materials to 0.010 at 5,000 &mdash; a factor of 24 &mdash; while the shortfall down each curve moves by no more than 0.021 from 200 test materials upward &mdash; for band gap under XGBoost, 0.394 to 0.031 of spread against a shortfall that moves by at most 0.021. The two axes are separable. Reaching &plusmn;0.016 on a score takes about 1,000 test materials; 500 gives &plusmn;0.024 and 200 gives &plusmn;0.040.</p>
 </div>
 
-</div></details><h2 id="per-target">One number of materials cannot describe nine targets</h2>
-<p class="sub">Shortfall at 5,000 training materials, per target, for both embeddings and for Magpie. Each bar is measured against that arm's own full-corpus score.</p>
-<p class="keyline"><span class="key"><i class="kc" style="background:var(--orb)"></i>ORB-v3</span><span class="key"><i class="kc" style="background:var(--uma)"></i>UMA-S</span><span class="key"><i class="kc" style="background:var(--mag)"></i>Magpie, composition only</span></p>
-<!--{{fig_percell}}-->
-
-<p><strong>The same number of materials is
-<span data-live="gapEasy">0.017</span> short on one target and
-<span data-live="gapHard">0.128</span> short on another.</strong> At 5,000 training
-materials formation energy is essentially at its ceiling, while crystal system is still
-0.13 of macro-F1 below it &mdash; a span of about
-<span data-live="span5k">7.7</span>&times;. ORB-v3 and UMA-S agree to within <span data-live="embAgree">0.029</span> on every target at this size, and within 0.01 on seven of the nine. The largest gaps are on energy above hull and magnetic density, where ORB-v3 sits 0.03 and 0.01 further below its ceiling than UMA-S does. Both embeddings agree on which targets need more data. Magpie shows a narrower span, 5.2&times;, from 0.031 on metal&nbsp;/&nbsp;insulator to 0.159 on energy above hull. Both spans leave out bulk modulus, which has one draw at this size; with it, Magpie's span is 12.6&times; and the embeddings' 8.6&times;. Magpie sits further below its own ceiling than the embeddings do on five targets and closer to it on density, magnetic density, bulk modulus and crystal system.</p>
-
-<div class="scroll"><table>
-<thead><tr><th>training materials</th><th class="num">5,000</th><th class="num">7,000</th>
-<th class="num">10,000</th><th class="num">20,000</th></tr></thead>
+</div></details><h3>Test floor: 500 materials</h3>
+<p>The spread is how far a score moves when the test set is re-drawn: the p10&ndash;p90 width over 200 re-drawn test sets, scored with one probe trained on 20,000 materials.</p>
+<div class="scroll"><table class="compact">
+<thead><tr><th class="num">test<br>materials</th><th class="num">median<br>spread</th><th class="num">range across<br>targets</th><th class="num">&plusmn; on<br>one score</th></tr></thead>
 <tbody>
-<tr><td>span, hardest / easiest target</td>
-<td class="num" data-live="span-5000">7.7&times;</td>
-<td class="num" data-live="span-7000">8.6&times;</td>
-<td class="num" data-live="span-10000">8.7&times;</td>
-<td class="num" data-live="span-20000">8.8&times;</td></tr>
+<!--{{tbl_floor_test}}-->
 </tbody></table></div>
+<p>Median and range over every target measured at that size; bulk modulus stops at 5,000, and the 20,000 point is the whole test set, a single score with no spread. The highlighted row is the floor.</p>
+
+<p>500 is the smallest size on the grid at which the median target's spread is under 0.05, about &plusmn;0.023 on one score. At 200 it is 0.078 (&plusmn;0.039), and the hardest target, magnetic density, moves by 0.189. Like the shortfall, the spread has no knee: it more than halves from 200 to 1,000 and keeps falling. At an 80/20 split the training floor already brings 1,250 test materials, above the test floor, so the test floor matters for smaller datasets and for other splits.</p>
+
+<h3>Both floors together</h3>
+<p class="sub">Two floors, one per axis: a training size read off the shortfall, and a test size read off the spread. XGBoost, each target the mean of ORB-v3 and UMA-S.</p>
+
+<div class="cvx floor-box">
+  <div class="cvx-strip"><!--{{floor_strip}}--></div>
+  <p class="keyline"><span class="key"><i class="kc" style="background:var(--ink)"></i>median across targets</span><span class="key"><i class="kb" style="background:var(--ink)"></i>band: middle half of targets</span><span class="key"><i class="kd"></i>dashed: spread of 0.05</span><span class="key"><i class="kd" style="border-top-style:dotted;border-color:var(--ink)"></i>dotted: the floor</span></p>
+  <div class="grid grid-2"><!--{{fig_floors}}--></div>
+</div>
 
 <div class="call">
-<p><strong>At one training size the targets sit far apart.</strong> At 5,000 the shortfall is <span data-live="gapEasy">0.017</span> on formation energy and <span data-live="gapHard">0.128</span> on crystal system &mdash; about <span data-live="span5k">7.7</span>&times; larger &mdash; and adding data widens the span between hardest and easiest target, to <span data-live="span-20000">8.8&times;</span> at 20,000. The shortfall is therefore reported per target alongside the score.</p>
+<p><strong>The floors are 5,000 training and 500 test materials. At 80/20 the training floor takes 6,250 materials in total, which puts 1,250 in the test set.</strong></p>
+<p class="why">Neither curve has a natural cut. Both floors were chosen <em>after</em> seeing the curves, as the smallest sizes at which the median target's shortfall is small enough to report and its spread is under 0.05. They are judgements about what is reasonable to ask for.</p>
 </div>
-<h2 id="composition">What the formula alone gives</h2>
-<p class="sub">Magpie is run once: the same probe on 132 composition-only features, on the same frozen test set and the same training draws as both embeddings. Each panel subtracts that one Magpie score from the ORB-v3 score and from the UMA-S score on the same draw, so the two lines share a baseline and differ only in the embedding.</p>
-<p class="keyline"><span class="key"><i class="kc" style="background:var(--orb)"></i>ORB-v3 score, less Magpie</span><span class="key"><i class="kc" style="background:var(--uma)"></i>UMA-S score, less Magpie</span><span class="key"><i class="kb"></i>band: p10&ndash;p90 of the paired difference</span><span class="key"><i class="kc" style="background:var(--ink)"></i>zero: the formula does as well</span></p>
-<!--{{fig_gain}}-->
-<p><strong>Whether an embedding says more than the formula depends on the target and on the training size.</strong> On <span data-live="gainEarlyCount">6</span> of the nine targets both embeddings beat composition on at least 90&nbsp;% of paired draws from <span data-live="gainEarlyMaxN">500</span> training materials or fewer. At 20,000 training materials, the embedding's score exceeds Magpie's by between <span data-live="gain20kLo">0.033</span> (magnetic&nbsp;/&nbsp;not, macro-F1) and <span data-live="gain20kHi">0.712</span> (energy above hull, R&sup2;). On density composition alone is ahead of both embeddings up to <span data-live="compDensityTo">500</span> training materials and the sign is not resolved until <span data-live="densityResolved">2,000</span>. On magnetic density neither embedding ever resolvably beats it: ORB-v3 is behind from <span data-live="magOrbBehindFrom">500</span> to 20,000, and UMA-S is behind from 2,000 to 10,000 and level at the other sizes.</p>
-<!--{{fig_gainmap}}-->
-<p class="sub">One dot per embedding, target and training size. Filled in the arm's colour: that arm ahead on at least 90&nbsp;% of the paired draws. Filled in the Magpie colour: composition ahead on at least 90&nbsp;%. Hollow: no clear winner; the embedding wins some draws and composition wins others. Hover a dot for its numbers.</p>
-<div class="scroll"><table class="gain-sum">
-<thead><tr><th rowspan="2">target</th><th colspan="3">ORB-v3</th><th colspan="3">UMA-S</th><th rowspan="2" class="num">largest<br>training size</th></tr>
-<tr><th class="num">beats Magpie<br>from</th><th class="num">Magpie<br>ahead at</th><th class="num">difference at<br>largest size</th><th class="num">beats Magpie<br>from</th><th class="num">Magpie<br>ahead at</th><th class="num">difference at<br>largest size</th></tr></thead>
-<tbody>
-<!--{{tbl_gain_summary}}-->
-</tbody></table></div>
-<p><strong>Beats Magpie from</strong>: the smallest training size from which the embedding scores higher than Magpie on at least 90&nbsp;% of paired draws, at that size and every larger one. <strong>Magpie ahead at</strong>: the training sizes where Magpie scores higher on at least 90&nbsp;% of draws; at 7,000 and 10,000 training materials, which have seven draws, that means six of seven. <strong>Difference at the largest size</strong>: embedding score minus Magpie score, median over draws, in R&sup2; or macro-F1. Bulk modulus stops at 2,000 because its corpus cannot supply three separate training sets beyond that.</p>
-<div class="call">
-<p><strong>A score can clear both floors and still say nothing the formula did not.</strong> At 5,000 training materials, the floor, magnetic density under ORB-v3 reproduces to about &plusmn;<span data-live="magOrbHalf5k">0.009</span> and composition alone scores higher on every draw. The shortfall and the spread describe the score; neither says whether the embedding earned it. That is a third quantity, set by the target and the training size, and it belongs beside the other two.</p>
-</div>
-<details class="every"><summary>Full data &mdash; embedding minus Magpie at every training size, both embeddings</summary><div class="inner"><p class="sub">Median, p10 and p90 of the paired difference over the draws at that size, and the share of draws the embedding won. Highlighted rows have p10 above zero: the embedding ahead on at least 90&nbsp;% of draws.</p>
+
+<p>A score below the training floor is not worthless &mdash; it is a lower bound, and should be reported as one, with its per-target shortfall beside it. Below the test floor it is noisier, and should be reported with its spread. Buying 0.011 of shortfall for another 2,500 materials is a trade for the reader to make.</p>
+
+<details class="every"><summary>Floors for one property &mdash; the training and test size each property needs on its own</summary><div class="inner">
+<p>Both floors describe the median target, and the targets differ by an order of magnitude on both axes. Anyone interested in a single property should set the floors from its own row:</p>
 <div class="scroll"><table>
-<thead><tr><th>target</th><th>embedding</th><th class="num">n train</th><th class="num">draws</th><th class="num">median</th><th class="num">p10</th><th class="num">p90</th><th class="num">embedding won</th></tr></thead>
+<thead><tr><th>target</th><th class="num">within 0.05 of its ceiling from<br>(training materials, ORB-v3 / UMA-S)</th><th class="num">spread at most 0.05 from<br>(test materials, ORB-v3 / UMA-S)</th></tr></thead>
 <tbody>
-<!--{{tbl_gain_full}}-->
+<!--{{tbl_floor_by_target}}-->
 </tbody></table></div>
+<p>&dagger; reached only at the largest training size measured for that target. For formation energy alone, 2,000 training materials (1,000 with UMA-S) bring the score within 0.05 of its ceiling, and 20 test materials already hold its spread at or below 0.05. Band gap needs 7,000 training and 5,000 test materials. Crystal system and magnetic density reach their ceilings only at 20,000, the largest size measured, and magnetic density also needs 5,000 test materials.</p>
+
 </div></details>
-<h2 id="split">Where to put the split</h2>
+<h2 id="split">Where questions 1 and 2 meet: the split</h2>
 <p class="sub">Total error against the train/test fraction, at six dataset sizes from 200 to 10,000; the full-data tables below add 20,000.</p>
 <p>With a fixed number of materials, every split has to decide how many go into the test set, and that choice moves two errors in opposite directions. Fewer materials for training means the probe scores lower than it would with more data: the <strong>shortfall</strong>, read off the training-size curve. More materials for testing means the score is measured more precisely: the <strong>spread</strong>, read off the test-size curve. For each split the page reads both off the curves and combines them into one total error; the lowest point on the plot below is the best split for that dataset size.</p>
 <p><strong>How the two are combined.</strong> The shortfall is a fixed offset: the score sits that far below its ceiling every time. The spread is random: a re-split moves the score up or down. A fixed error and a random one combine as &radic;(shortfall&sup2;&nbsp;+&nbsp;sd&sup2;), where sd is the random error expressed as a standard deviation. The spread on this page is the width between the 10th and 90th percentile of the score across draws, which for a normal distribution is 2.5631 standard deviations; the page estimates it as exactly that, so sd&nbsp;=&nbsp;spread&nbsp;&divide;&nbsp;2.5631 recovers the standard deviation. One adjustment comes first: a probe that scores lower scatters more, so the spread is scaled up by (1&nbsp;&minus;&nbsp;score)/(1&nbsp;&minus;&nbsp;ceiling), as in the calculator.</p>
@@ -618,72 +680,31 @@ materials formation energy is essentially at its ceiling, while crystal system i
 <p><strong>Shortfall costs more than spread at every dataset size from 500 up, so the minimum sits on the training side of an even split.</strong> 80/20 beats 50/50 in <span data-live="win500">15</span> of <span data-live="cells">18</span> cells at 500 materials, 16 at 1,000 and 2,000, and every cell from 5,000 up. 80/20 has the lowest median total error at 500 and 5,000; at 1,000 and 2,000 90/10 edges it by 0.004 and 0.001 while 80/20 wins more cells, 9 to 3 and 8 to 6; at 10,000 and 20,000 90/10 is lower by 0.003 and 0.002 and the cells split 11 to 5 for 80/20 and 8 to 8. At 200 materials the median minimum is 70/30 and 80/20 beats the even split in only 9 of 18 &mdash; but 200 is far below the floor this page settles on.</p>
 </div>
 
-<h2 id="floor">Choosing the floors</h2>
-<p class="sub">Two floors, one per axis: a training size read off the shortfall, and a test size read off the spread. XGBoost, each target the mean of ORB-v3 and UMA-S.</p>
-
-<div class="cvx floor-box">
-  <div class="cvx-strip"><!--{{floor_strip}}--></div>
-  <p class="keyline"><span class="key"><i class="kc" style="background:var(--ink)"></i>median across targets</span><span class="key"><i class="kb" style="background:var(--ink)"></i>band: middle half of targets</span><span class="key"><i class="kd"></i>dashed: spread of 0.05</span><span class="key"><i class="kd" style="border-top-style:dotted;border-color:var(--ink)"></i>dotted: the floor</span></p>
-  <div class="grid grid-2"><!--{{fig_floors}}--></div>
-</div>
-
-<div class="floor-cols">
-<div>
-<h3>Training floor: 5,000 materials</h3>
-<p>The shortfall is how far a score sits below the same probe's full-corpus score. It falls at every step of the grid:</p>
-<div class="scroll"><table class="compact">
-<thead><tr><th class="num">training<br>materials</th><th class="num">median<br>shortfall</th><th class="num">range across<br>targets</th><th class="num">materials<br>at 80/20</th></tr></thead>
+<h2 id="composition">3 &middot; Does the embedding add anything beyond composition?</h2>
+<p class="sub">Magpie is run once: the same probe on 132 composition-only features, on the same frozen test set and the same training draws as both embeddings. Each panel subtracts that one Magpie score from the ORB-v3 score and from the UMA-S score on the same draw, so the two lines share a baseline and differ only in the embedding.</p>
+<p class="keyline"><span class="key"><i class="kc" style="background:var(--orb)"></i>ORB-v3 score, less Magpie</span><span class="key"><i class="kc" style="background:var(--uma)"></i>UMA-S score, less Magpie</span><span class="key"><i class="kb"></i>band: p10&ndash;p90 of the paired difference</span><span class="key"><i class="kc" style="background:var(--ink)"></i>zero: the formula does as well</span></p>
+<!--{{fig_gain}}-->
+<p><strong>Whether an embedding says more than the formula depends on the target and on the training size.</strong> On <span data-live="gainEarlyCount">6</span> of the nine targets both embeddings beat composition on at least 90&nbsp;% of paired draws from <span data-live="gainEarlyMaxN">500</span> training materials or fewer. At 20,000 training materials, the embedding's score exceeds Magpie's by between <span data-live="gain20kLo">0.033</span> (magnetic&nbsp;/&nbsp;not, macro-F1) and <span data-live="gain20kHi">0.712</span> (energy above hull, R&sup2;). On density composition alone is ahead of both embeddings up to <span data-live="compDensityTo">500</span> training materials and the sign is not resolved until <span data-live="densityResolved">2,000</span>. On magnetic density neither embedding ever resolvably beats it: ORB-v3 is behind from <span data-live="magOrbBehindFrom">500</span> to 20,000, and UMA-S is behind from 2,000 to 10,000 and level at the other sizes.</p>
+<!--{{fig_gainmap}}-->
+<p class="sub">One dot per embedding, target and training size. Filled in the arm's colour: that arm ahead on at least 90&nbsp;% of the paired draws. Filled in the Magpie colour: composition ahead on at least 90&nbsp;%. Hollow: no clear winner; the embedding wins some draws and composition wins others. Hover a dot for its numbers.</p>
+<div class="scroll"><table class="gain-sum">
+<thead><tr><th rowspan="2">target</th><th colspan="3">ORB-v3</th><th colspan="3">UMA-S</th><th rowspan="2" class="num">largest<br>training size</th></tr>
+<tr><th class="num">beats Magpie<br>from</th><th class="num">Magpie<br>ahead at</th><th class="num">difference at<br>largest size</th><th class="num">beats Magpie<br>from</th><th class="num">Magpie<br>ahead at</th><th class="num">difference at<br>largest size</th></tr></thead>
 <tbody>
-<!--{{tbl_floor_train}}-->
+<!--{{tbl_gain_summary}}-->
 </tbody></table></div>
-<p>Median and range over the eight targets measured at every size; bulk modulus is left out because its corpus stops the curve at 5,000. The highlighted row is the floor.</p>
-<p>There is no knee. Up to 2,000 the median target is more than 0.10 short, so a score there is mainly a lower bound. From 5,000 to 20,000 each step buys 0.011&ndash;0.014 of shortfall and costs progressively more data &mdash; 40&nbsp;% more materials for the first step, then 43&nbsp;%, then 100&nbsp;%. The floor sits at 5,000, where the median target is 0.058 short; it is set by how much data it is reasonable to demand.</p>
-</div>
-<div>
-<h3>Test floor: 500 materials</h3>
-<p>The spread is how far a score moves when the test set is re-drawn: the p10&ndash;p90 width over 200 re-drawn test sets, scored with one probe trained on 20,000 materials.</p>
-<div class="scroll"><table class="compact">
-<thead><tr><th class="num">test<br>materials</th><th class="num">median<br>spread</th><th class="num">range across<br>targets</th><th class="num">&plusmn; on<br>one score</th></tr></thead>
-<tbody>
-<!--{{tbl_floor_test}}-->
-</tbody></table></div>
-<p>Median and range over every target measured at that size; bulk modulus stops at 5,000, and the 20,000 point is the whole test set, a single score with no spread. The highlighted row is the floor.</p>
-
-<p>500 is the smallest size on the grid at which the median target's spread is under 0.05, about &plusmn;0.023 on one score. At 200 it is 0.078 (&plusmn;0.039), and the hardest target, magnetic density, moves by 0.189. Like the shortfall, the spread has no knee: it more than halves from 200 to 1,000 and keeps falling. At an 80/20 split the training floor already brings 1,250 test materials, above the test floor, so the test floor matters for smaller datasets and for other splits.</p>
-</div>
-</div>
-
-<p>ORB-v3 and UMA-S agree to within 0.029 at every size, and within 0.01 on all targets except energy above hull, where the gap is 0.013&ndash;0.029, and magnetic density at 5,000, where it is 0.011; both rank the targets in nearly the same order (rank correlation 0.88&ndash;0.93), so which targets need more data is a property of the task and not of either one.</p>
-
-
-<h3>Raising the floor does not fix the target that needs fixing</h3>
-<div class="scroll"><table>
-<thead><tr><th>target</th><th class="num">5,000</th><th class="num">7,000</th><th class="num">10,000</th><th class="num">20,000</th></tr></thead>
-<tbody>
-<!--{{tbl_shortfall_targets}}-->
-</tbody></table></div>
-
-<p>Bulk modulus stops at 5,000 because its corpus holds 12,853 materials, so a training set of 7,000 cannot be drawn alongside a disjoint reference set. It is left out of the pooled mean above for the same reason: including it would change what the column averages partway along the row.</p>
-
-<p>The span across targets widens with training data. Crystal system at 20,000 is still 0.048 short &mdash; worse than formation energy is at 5,000, on four times the data. A floor set high enough to bring crystal system within 0.05 of its ceiling would be 20,000, the largest size measured, and still leave the easy targets paying for it.</p>
-
-<h3>Floors for one property</h3>
-<p>Both floors describe the median target, and the targets differ by an order of magnitude on both axes. Anyone interested in a single property should set the floors from its own row:</p>
-<div class="scroll"><table>
-<thead><tr><th>target</th><th class="num">within 0.05 of its ceiling from<br>(training materials, ORB-v3 / UMA-S)</th><th class="num">spread at most 0.05 from<br>(test materials, ORB-v3 / UMA-S)</th></tr></thead>
-<tbody>
-<!--{{tbl_floor_by_target}}-->
-</tbody></table></div>
-<p>&dagger; reached only at the largest training size measured for that target. For formation energy alone, 2,000 training materials (1,000 with UMA-S) bring the score within 0.05 of its ceiling, and 20 test materials already hold its spread at or below 0.05. Band gap needs 7,000 training and 5,000 test materials. Crystal system and magnetic density reach their ceilings only at 20,000, the largest size measured, and magnetic density also needs 5,000 test materials.</p>
-
+<p><strong>Beats Magpie from</strong>: the smallest training size from which the embedding scores higher than Magpie on at least 90&nbsp;% of paired draws, at that size and every larger one. <strong>Magpie ahead at</strong>: the training sizes where Magpie scores higher on at least 90&nbsp;% of draws; at 7,000 and 10,000 training materials, which have seven draws, that means six of seven. <strong>Difference at the largest size</strong>: embedding score minus Magpie score, median over draws, in R&sup2; or macro-F1. Bulk modulus stops at 2,000 because its corpus cannot supply three separate training sets beyond that.</p>
 <div class="call">
-<p><strong>The floors are 5,000 training and 500 test materials. At 80/20 the training floor takes 6,250 materials in total, which puts 1,250 in the test set.</strong></p>
-<p class="why">Neither curve has a natural cut. Both floors were chosen <em>after</em> seeing the curves, as the smallest sizes at which the median target's shortfall is small enough to report and its spread is under 0.05. They are judgements about what is reasonable to ask for.</p>
+<p><strong>A score can clear both floors and still say nothing the formula did not.</strong> At 5,000 training materials, the floor, magnetic density under ORB-v3 reproduces to about &plusmn;<span data-live="magOrbHalf5k">0.009</span> and composition alone scores higher on every draw. The shortfall and the spread describe the score; neither says whether the embedding earned it. That is a third quantity, set by the target and the training size, and it belongs beside the other two.</p>
 </div>
-
-<p>A score below the training floor is not worthless &mdash; it is a lower bound, and should be reported as one, with its per-target shortfall beside it. Below the test floor it is noisier, and should be reported with its spread. Buying 0.011 of shortfall for another 2,500 materials is a trade for the reader to make.</p>
-
-<h2 id="cv">Cross-validation: which evaluation method is most reliable with limited data?</h2>
+<details class="every"><summary>Full data &mdash; embedding minus Magpie at every training size, both embeddings</summary><div class="inner"><p class="sub">Median, p10 and p90 of the paired difference over the draws at that size, and the share of draws the embedding won. Highlighted rows have p10 above zero: the embedding ahead on at least 90&nbsp;% of draws.</p>
+<div class="scroll"><table>
+<thead><tr><th>target</th><th>embedding</th><th class="num">n train</th><th class="num">draws</th><th class="num">median</th><th class="num">p10</th><th class="num">p90</th><th class="num">embedding won</th></tr></thead>
+<tbody>
+<!--{{tbl_gain_full}}-->
+</tbody></table></div>
+</div></details>
+<h2 id="cv">4 &middot; A methodological check: reusing the data</h2>
 <div class="call warn cv-pending"><p>The cross-validation comparison has not been run to completion yet; its results will appear here.</p></div>
 <div class="needs-cv">
 <p class="sub">Given a small dataset, which way of measuring a probe's score gives the most reliable estimate?</p>
@@ -734,7 +755,11 @@ materials formation energy is essentially at its ceiling, while crystal system i
 </figure>
 <p>Every dot sits below the dashed 0.95 line. Cross-validation's interval is the narrowest of the three, and it is the less reliable of the pair at 100, 200 and 2,000 materials on both embeddings and at 1,000 on UMA-S. Cross-validation is therefore the most accurate point estimate and the least reliable interval. For how much a score moves, quote the spread measured on this page for the test size in hand.</p>
 
-<h3>By property and dataset size</h3>
+<div class="call">
+<p><strong>Main conclusion.</strong> For limited datasets, 5-fold cross-validation is the best of the three procedures tested for estimating the score itself, and its advantage is largest when the dataset is very small. Five averaged splits come close; a single split is substantially noisier and should not be used. None of the reported 95&nbsp;% intervals reaches its stated coverage, cross-validation's least of all, so they should be read with caution, and the comparison carries the training-size mismatch described above.</p>
+</div>
+
+<details class="every"><summary>More on the cross-validation comparison &mdash; by property and size, what it does not change, and its limits</summary><div class="inner"><h3>By property and dataset size</h3>
 <div class="cvx">
   <div class="cvx-strip">
     <div class="cvx-stat"><span class="k">CV closer than five splits in</span><span class="v" data-live="cvWin3">84 %</span></div>
@@ -778,10 +803,6 @@ materials formation energy is essentially at its ceiling, while crystal system i
 </tbody></table></div>
 <p>At <span data-live="budN">2,000</span> materials cross-validation cuts the noise from <span data-live="budNoise1">0.020</span> (one split) to <span data-live="budNoiseCv">0.011</span>, and the total from <span data-live="budTot1">0.125</span> to <span data-live="budTotCv">0.124</span>, because the bias of <span data-live="budBias">0.123</span> dominates.</p>
 
-<div class="call">
-<p><strong>Main conclusion.</strong> For limited datasets, 5-fold cross-validation is the best of the three procedures tested for estimating the score itself, and its advantage is largest when the dataset is very small. Five averaged splits come close; a single split is substantially noisier and should not be used. None of the reported 95&nbsp;% intervals reaches its stated coverage, cross-validation's least of all, so they should be read with caution, and the comparison carries the training-size mismatch described above.</p>
-</div>
-
 <div class="limits">
 <span class="tag">what this does not settle</span>
 <ul>
@@ -790,13 +811,14 @@ materials formation energy is essentially at its ceiling, while crystal system i
 <li>Bulk modulus has fewer datasets above 500 materials (12, 6 and 3 at 500, 1,000 and 2,000) because its pool runs out.</li>
 </ul>
 </div>
+</div></details>
 </div>
 
 <h2 id="conclusion">Conclusion</h2>
 <ol class="concl">
-<li><strong>Use floors of 5,000 training and 500 test materials</strong>, 6,250 materials in total at 80/20. Targets differ five- to ninefold, so for a single property read its own row of the floors table.</li>
-<li><strong>Split 80/20.</strong><span class="needs-cv"> On small datasets, score with 5-fold cross-validation or five averaged splits, never a single split, and do not quote their 95&nbsp;% intervals as they stand.</span></li>
-<li><strong>Report the gain over composition per target.</strong> The embeddings beat Magpie from <span data-live="gainEarlyMaxN">500</span> training materials or fewer on <span data-live="gainEarlyCount">6</span> targets, from <span data-live="densityResolved">2,000</span> on density, and never on magnetic density.</li>
+<li><strong>Is the model trained on enough materials?</strong> Use a floor of 5,000 training materials. Targets differ five- to ninefold, so for a single property read its own row of the floors table.</li>
+<li><strong>Would another test set give the same score?</strong> Use a floor of 500 test materials and an 80/20 split; at 80/20 the training floor already brings 1,250 test materials.<span class="needs-cv"> On small datasets, score with 5-fold cross-validation or five averaged splits, never a single split, and do not quote their 95&nbsp;% intervals as they stand.</span></li>
+<li><strong>Does the embedding add anything beyond composition?</strong> Report the gain over composition per target. The embeddings beat Magpie from <span data-live="gainEarlyMaxN">500</span> training materials or fewer on <span data-live="gainEarlyCount">6</span> targets, from <span data-live="densityResolved">2,000</span> on density, and never on magnetic density.</li>
 </ol>
 
 <h2>References</h2>
