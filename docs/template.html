@@ -242,8 +242,8 @@ h2{scroll-margin-top:66px}
 <nav class="topnav"><div class="inner">
 <span class="brand">train / test under limited data</span>
 <ul>
-<li><a href="#questions">Questions</a></li>
 <li><a href="#calc">Calculator</a></li>
+<li><a href="#questions">Questions</a></li>
 <li><a href="#design">Methods</a></li>
 <li><a href="#training">1&nbsp;Training</a></li>
 <li><a href="#test">2&nbsp;Testing</a></li>
@@ -258,24 +258,6 @@ h2{scroll-margin-top:66px}
 <h1>When is a representation benchmark trustworthy under limited data?</h1>
 <p class="lede">An empirical study of how many labelled materials a probe on a frozen machine-learned interatomic potential needs before its score can be trusted: how far it sits below what more data would give, how much it moves with the test set, and how much of it the chemical formula alone explains.</p>
 </header>
-
-<h2 id="questions">Three questions behind every small-data benchmark</h2>
-<p class="sub">How much data do you need before a comparison between materials representations can be trusted? A score from a small dataset can mislead in three separate ways, and this page measures each one on frozen ORB-v3 and UMA-S embeddings over nine Materials Project properties.</p>
-<ol class="concl">
-<li><strong>Is the model trained on enough materials?</strong> A probe trained on few materials scores below what the same probe reaches with more data. That gap is the <em>shortfall</em>, and training size sets it.</li>
-<li><strong>Would another test set give the same score?</strong> A small test set gives a score that moves when the test set is redrawn. That movement is the <em>spread</em>, and test size sets it.</li>
-<li><strong>Does the embedding add anything beyond composition?</strong> A good score can come from the chemical formula alone. Composition-only Magpie features, run on the same draws, show how much of each score the embedding adds.</li>
-</ol>
-<div class="call">
-<p><strong>What the measurements show</strong></p>
-<ul class="why-list">
-<li><strong>Stability and sufficiency are different.</strong> Band gap gives a reproducible score from 500 training materials, but its score keeps rising until 7,000, where it comes within 0.05 of the full-data score.</li>
-<li><strong>There is no universal minimum dataset size.</strong> At 5,000 training materials the shortfall runs from <span data-live="gapEasy">0.017</span> on formation energy to <span data-live="gapHard">0.128</span> on crystal system.</li>
-<li><strong>A strong representation can lose to composition when data is scarce.</strong> Composition alone is ahead of both embeddings on density up to 500 training materials, and neither embedding resolvably beats it on magnetic density.</li>
-<li><strong>The limiting error switches with dataset size.</strong> At 200 materials a 70/30 split is best; from 500 up the shortfall dominates and the best split moves toward training.</li>
-<li><strong>80/20 works here for an empirical reason.</strong> From 500 materials up it is within 0.004 of the best split at every size measured.</li>
-</ul>
-</div>
 
 <h2 id="calc">What would my score mean?</h2>
 <p class="sub">Pick a target and two sizes. Everything below is how these numbers were
@@ -346,6 +328,24 @@ measured.</p>
 was measured on a probe trained on 20,000 materials (6,427 for bulk modulus). A probe trained on less sits
 further from its ceiling and scatters more, so the spread is scaled up by
 (1&minus;score)/(1&minus;ceiling) first. This treats the 20,000-material probe as if it were at its ceiling, so the scaled spread errs high.</p>
+<h2 id="questions">Three questions behind every small-data benchmark</h2>
+<p class="sub">How much data do you need before a comparison between materials representations can be trusted? A score from a small dataset can mislead in three separate ways, and this page measures each one on frozen ORB-v3 and UMA-S embeddings over nine Materials Project properties.</p>
+<ol class="concl">
+<li><strong>Is the model trained on enough materials?</strong> A probe trained on few materials scores below what the same probe reaches with more data. That gap is the <em>shortfall</em>, and training size sets it.</li>
+<li><strong>Would another test set give the same score?</strong> A small test set gives a score that moves when the test set is redrawn. That movement is the <em>spread</em>, and test size sets it.</li>
+<li><strong>Does the embedding add anything beyond composition?</strong> A good score can come from the chemical formula alone. Composition-only Magpie features, run on the same draws, show how much of each score the embedding adds.</li>
+</ol>
+<div class="call">
+<p><strong>What the measurements show</strong></p>
+<ul class="why-list">
+<li><strong>Stability and sufficiency are different.</strong> Band gap gives a reproducible score from 500 training materials, but its score keeps rising until 7,000, where it comes within 0.05 of the full-data score.</li>
+<li><strong>There is no universal minimum dataset size.</strong> At 5,000 training materials the shortfall runs from <span data-live="gapEasy">0.017</span> on formation energy to <span data-live="gapHard">0.128</span> on crystal system.</li>
+<li><strong>A strong representation can lose to composition when data is scarce.</strong> Composition alone is ahead of both embeddings on density up to 500 training materials, and neither embedding resolvably beats it on magnetic density.</li>
+<li><strong>The limiting error switches with dataset size.</strong> At 200 materials a 70/30 split is best; from 500 up the shortfall dominates and the best split moves toward training.</li>
+<li><strong>80/20 works here for an empirical reason.</strong> From 500 materials up it is within 0.004 of the best split at every size measured.</li>
+</ul>
+</div>
+
 <details class="every"><summary>The two errors in one paragraph, and what this page measures</summary><div class="inner"><p>A probe trained on a few hundred materials gets a score. That score
 carries two errors that are usually conflated. The <strong>shortfall</strong> is how far
 it sits below what the same probe reaches on more data; it is set by training size and
