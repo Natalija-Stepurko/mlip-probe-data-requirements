@@ -19,8 +19,8 @@ header{border-bottom:2px solid var(--ink);padding-bottom:22px;margin-bottom:34px
 h1{font-size:clamp(26px,3.6vw,38px);line-height:1.12;letter-spacing:-.02em;margin:0 0 14px;
   text-wrap:balance;font-weight:640}
 .lede{font-size:17px;color:var(--muted);margin:0}
-h2{font-size:21px;letter-spacing:-.01em;margin:52px 0 8px;font-weight:640}
-h3{font-size:14px;font-weight:640;margin:26px 0 8px;display:flex;align-items:center;gap:8px}
+h2{font-size:24px;line-height:1.25;letter-spacing:-.015em;margin:72px 0 10px;font-weight:650;text-wrap:balance}
+h3{font-size:16px;font-weight:700;color:var(--ink);margin:30px 0 8px;display:flex;align-items:center;gap:8px}
 h3 .swatch{width:18px;height:3px;border-radius:2px}
 .sub{color:var(--muted);font-size:15px;margin:0 0 20px}
 p{margin:0 0 14px}
@@ -54,7 +54,6 @@ table.gain-sum th,table.gain-sum td{padding:6px 10px}
 table.compact th,table.compact td{padding:6px 10px}
 .cv-fig{margin:6px 0 8px}
 .cv-fig .keyline{padding-left:4px}
-h3.lead{font-size:inherit;font-weight:700;color:var(--ink);letter-spacing:normal}
 .grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
 .floor-box .grid{margin-top:4px}
 .floor-cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 28px;align-items:start}
@@ -628,7 +627,7 @@ materials formation energy is essentially at its ceiling, while crystal system i
 
 <div class="floor-cols">
 <div>
-<h3 class="lead">Training floor: 5,000 materials</h3>
+<h3>Training floor: 5,000 materials</h3>
 <p>The shortfall is how far a score sits below the same probe's full-corpus score. It falls at every step of the grid:</p>
 <div class="scroll"><table class="compact">
 <thead><tr><th class="num">training<br>materials</th><th class="num">median<br>shortfall</th><th class="num">range across<br>targets</th><th class="num">materials<br>at 80/20</th></tr></thead>
@@ -639,7 +638,7 @@ materials formation energy is essentially at its ceiling, while crystal system i
 <p>There is no knee. Up to 2,000 the median target is more than 0.10 short, so a score there is mainly a lower bound. From 5,000 to 20,000 each step buys 0.011&ndash;0.014 of shortfall and costs progressively more data &mdash; 40&nbsp;% more materials for the first step, then 43&nbsp;%, then 100&nbsp;%. The floor sits at 5,000, where the median target is 0.058 short; it is set by how much data it is reasonable to demand.</p>
 </div>
 <div>
-<h3 class="lead">Test floor: 500 materials</h3>
+<h3>Test floor: 500 materials</h3>
 <p>The spread is how far a score moves when the test set is re-drawn: the p10&ndash;p90 width over 200 re-drawn test sets, scored with one probe trained on 20,000 materials.</p>
 <div class="scroll"><table class="compact">
 <thead><tr><th class="num">test<br>materials</th><th class="num">median<br>spread</th><th class="num">range across<br>targets</th><th class="num">&plusmn; on<br>one score</th></tr></thead>
@@ -655,7 +654,7 @@ materials formation energy is essentially at its ceiling, while crystal system i
 <p>ORB-v3 and UMA-S agree to within 0.029 at every size, and within 0.01 on all targets except energy above hull, where the gap is 0.013&ndash;0.029, and magnetic density at 5,000, where it is 0.011; both rank the targets in nearly the same order (rank correlation 0.88&ndash;0.93), so which targets need more data is a property of the task and not of either one.</p>
 
 
-<h3 class="lead">Raising the floor does not fix the target that needs fixing</h3>
+<h3>Raising the floor does not fix the target that needs fixing</h3>
 <div class="scroll"><table>
 <thead><tr><th>target</th><th class="num">5,000</th><th class="num">7,000</th><th class="num">10,000</th><th class="num">20,000</th></tr></thead>
 <tbody>
@@ -666,7 +665,7 @@ materials formation energy is essentially at its ceiling, while crystal system i
 
 <p>The span across targets widens with training data. Crystal system at 20,000 is still 0.048 short &mdash; worse than formation energy is at 5,000, on four times the data. A floor set high enough to bring crystal system within 0.05 of its ceiling would be 20,000, the largest size measured, and still leave the easy targets paying for it.</p>
 
-<h3 class="lead">Floors for one property</h3>
+<h3>Floors for one property</h3>
 <p>Both floors describe the median target, and the targets differ by an order of magnitude on both axes. Anyone interested in a single property should set the floors from its own row:</p>
 <div class="scroll"><table>
 <thead><tr><th>target</th><th class="num">within 0.05 of its ceiling from<br>(training materials, ORB-v3 / UMA-S)</th><th class="num">spread at most 0.05 from<br>(test materials, ORB-v3 / UMA-S)</th></tr></thead>
@@ -698,27 +697,28 @@ materials formation energy is essentially at its ceiling, while crystal system i
 </tbody></table></div>
 <p><strong>In all three methods, each individual model is trained on 80&nbsp;% of the small dataset.</strong> They differ only in how the held-out materials are used to score it. In 5-fold cross-validation every material is scored exactly once, by a model that was not trained on it.</p>
 
-<h3 class="lead">How the methods were evaluated</h3>
+<h3>How the methods were evaluated</h3>
 <p>Someone who has only a small dataset cannot know how well their probe really performs; that is what the estimate is for. Here the much larger corpus makes it possible to approximate. A frozen test set of 20,000 materials (6,426 for bulk modulus) is kept out of everything. For each small dataset of <em>n</em> materials, a probe is trained on all <em>n</em> and scored on those 20,000. Because that test set is large, this score is used as the <strong>reference score</strong> for the small dataset. It is a different number from the paper's full-corpus score used elsewhere on this page, which belongs to a probe trained on all 154,875 materials.</p>
 <p>Each of the three methods then estimates the score from the <em>n</em> materials alone, and its estimate is compared with the reference score. The comparison covers <span data-live="cvCells">90</span> combinations &mdash; two embeddings, nine properties, five dataset sizes from 100 to 2,000 materials &mdash; with 20 independent datasets for each (fewer for bulk modulus above 500).</p>
 <div class="call warn">
 <p><strong>Important caveat.</strong> The reference probe is trained on all <em>n</em> materials, while every model inside the three methods is trained on 0.8<em>n</em>. The difference from the reference therefore includes both the error of the method and a small effect of the smaller training set; all three methods share that effect, so it lowers all three estimates slightly.</p>
 </div>
 
-<h3 class="lead">Accuracy of the reported score</h3>
+<h3>Accuracy of the reported score</h3>
 <p>The typical error is the root-mean-square difference between a method's reported score and the reference score over the 20 datasets of a size, as a median over properties and embeddings (R&sup2; or macro-F1). The lowest in each column is in bold.</p>
 <div class="scroll"><table class="compact">
 <thead><tr><th>method</th><th class="num">dataset of<br>100</th><th class="num">dataset of<br>200</th><th class="num">dataset of<br>500</th><th class="num">dataset of<br>1,000</th><th class="num">dataset of<br>2,000</th></tr></thead>
 <tbody>
 <!--{{tbl_cv_accuracy}}-->
 </tbody></table></div>
-<p>5-fold cross-validation gives the score closest to the reference at every dataset size. Averaging five random splits closes most of the gap; a single split is much noisier, with 1.6 to 2 times the error of either alternative from 500 materials up. Compared combination by combination, cross-validation is closer than the five-split average in <span data-live="cvWin">84</span>&nbsp;% of cases, with a median <span data-live="cvGain">16.8</span>&nbsp;% lower error at 1,000 materials or fewer, and its advantage is largest at 100 materials.</p>
+<p>5-fold cross-validation gives the score closest to the reference at every dataset size. Averaging five random splits closes most of the gap; a single split is much noisier, with 1.6 to 2 times the error of either alternative from 500 materials up.</p>
+<p>The table compares typical errors. The chart below compares cross-validation with the five-split average directly: each bar is the share by which cross-validation's error is smaller than the five-split average's, averaged over the nine properties at one dataset size.</p>
 <figure class="panel cv-fig"><figcaption>How much smaller cross-validation's error is than that of five averaged 80/20 splits</figcaption>
 <!--{{fig_cv_gain}}-->
 </figure>
-<p class="sub">Each bar is one dataset size, averaged over the nine properties: 1&nbsp;&minus; (cross-validation's error &divide; the five-split average's error). +20&nbsp;% means cross-validation's estimate is 20&nbsp;% closer to the reference score; a bar below zero would mean it is further away.</p>
+<p>Every bar is above zero, so cross-validation is the more accurate of the two at every dataset size, on both embeddings. The gap is widest on the smallest datasets &mdash; 28&nbsp;% for ORB-v3 and 34&nbsp;% for UMA-S at 100 materials &mdash; where each of the five split scores is measured on only 20 materials and their average runs low. Comparing individual combinations, cross-validation is closer in <span data-live="cvWin">84</span>&nbsp;% of them, with a median <span data-live="cvGain">16.8</span>&nbsp;% lower error at 1,000 materials or fewer.</p>
 
-<h3 class="lead">Reliability of the 95&nbsp;% intervals</h3>
+<h3>Reliability of the 95&nbsp;% intervals</h3>
 <p>Each method also reports a 95&nbsp;% interval around its score. An interval that is as reliable as it claims should contain the reference score on 95&nbsp;% of datasets.</p>
 <div class="scroll"><table class="compact">
 <thead><tr><th>method</th><th class="num">interval contains<br>the reference score</th><th class="num">interval contains the expected<br>score at 80&nbsp;% of the data</th></tr></thead>
@@ -726,14 +726,14 @@ materials formation energy is essentially at its ceiling, while crystal system i
 <!--{{tbl_cv_intervals}}-->
 </tbody></table></div>
 <p class="sub">Share of datasets, averaged over all 90 combinations. The second column checks the caveat above: it compares each interval with the expected score of a probe trained on 80&nbsp;% of the dataset, which is what every method actually trains.</p>
-<p>None of the methods reaches 95&nbsp;%. Cross-validation, the most accurate point estimate, has the narrowest interval and the lowest coverage. Comparing with the expected score at 80&nbsp;% of the data lifts all three, to 87&ndash;90&nbsp;%, so the training-size mismatch explains only part of the shortfall. Quote the spread measured on this page for the test size in hand, which is wider.</p>
+<p>None of the methods reaches 95&nbsp;%. Comparing with the expected score at 80&nbsp;% of the data lifts all three, to 87&ndash;90&nbsp;%, so the training-size mismatch explains only part of the shortfall. The chart below follows the two more accurate methods across dataset sizes: each pair of dots is one size, averaged over the nine properties, with the five-split average in grey and cross-validation in its embedding's colour.</p>
 <figure class="panel cv-fig"><figcaption>How often each method's 95&nbsp;% interval contains the reference score</figcaption>
 <p class="keyline"><span class="key"><i class="kc" style="background:var(--ink)"></i>five averaged 80/20 splits</span><span class="key"><i class="kc" style="background:var(--orb)"></i><i class="kc" style="background:var(--uma)"></i>5-fold cross-validation</span><span class="key"><i class="kd"></i>dashed: 0.95, what a 95&nbsp;% interval promises</span></p>
 <!--{{fig_cv_coverage}}-->
 </figure>
-<p class="sub">Each pair of dots is one dataset size, averaged over the nine properties.</p>
+<p>Every dot sits below the dashed 0.95 line. Cross-validation's interval is the narrowest of the three, and it is the less reliable of the pair at 100, 200 and 2,000 materials on both embeddings and at 1,000 on UMA-S. Cross-validation is therefore the most accurate point estimate and the least reliable interval. For how much a score moves, quote the spread measured on this page for the test size in hand.</p>
 
-<h3 class="lead">By property and dataset size</h3>
+<h3>By property and dataset size</h3>
 <div class="cvx">
   <div class="cvx-strip">
     <div class="cvx-stat"><span class="k">CV closer than five splits in</span><span class="v" data-live="cvWin3">84 %</span></div>
@@ -767,7 +767,7 @@ materials formation energy is essentially at its ceiling, while crystal system i
 </tbody></table></div>
 <p>CV has the lower RMSE in <span data-live="bgWin">9</span> of <span data-live="bgCells">10</span> cells; its coverage is below 0.90 in <span data-live="bgCvLow">6</span> of the <span data-live="bgCells">10</span>, and the five-split average's in <span data-live="bgRhLow">4</span>. Draws are 20 at every n. The shortfall column is the same quantity for both arms, since both train on 0.8n.</p></div></details>
 
-<h3 class="lead">What cross-validation does not change</h3>
+<h3>What cross-validation does not change</h3>
 <p>Cross-validation makes the estimate of a small-data probe's score more accurate. It does not bring that score closer to what the same embedding reaches on the full corpus, because each of its models still trains on 80&nbsp;% of the data. For an embedding comparison, that distance is usually the larger error.</p>
 <p class="sub">Band gap, ORB-v3. Bias is the shortfall from the full-corpus score at 80&nbsp;% of the data; noise is the spread of each method's error across datasets; total combines the two.</p>
 <div class="scroll"><table>
