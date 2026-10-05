@@ -342,7 +342,7 @@ further from its ceiling and scatters more, so the spread is scaled up by
 <li><strong>There is no universal minimum dataset size.</strong> At 5,000 training materials the shortfall runs from <span data-live="gapEasy">0.017</span> on formation energy to <span data-live="gapHard">0.128</span> on crystal system.</li>
 <li><strong>A strong representation can lose to composition when data is scarce.</strong> Composition alone is ahead of both embeddings on density up to 500 training materials, and neither embedding resolvably beats it on magnetic density.</li>
 <li><strong>The limiting error switches with dataset size.</strong> At 200 materials a 70/30 split is best; from 500 up the shortfall dominates and the best split moves toward training.</li>
-<li><strong>80/20 works here for an empirical reason.</strong> From 500 materials up it is within 0.004 of the best split at every size measured.</li>
+<li><strong>The usual 80/20 split is close to the best one here.</strong> From 500 materials up it is within 0.004 of the lowest total error at every size measured; at 200 materials 70/30 is better, and at 1,000, 2,000, 10,000 and 20,000 90/10 is very slightly better.</li>
 </ul>
 </div>
 
