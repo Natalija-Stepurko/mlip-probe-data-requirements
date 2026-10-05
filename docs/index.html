@@ -1646,7 +1646,6 @@ materials formation energy is essentially at its ceiling, while crystal system i
 
 <h2 id="conclusion">Conclusion</h2>
 <ol class="concl">
-<li><strong>Report two numbers with every score.</strong> The spread says how far a re-split would move it and is set by the test size; the shortfall says how far it sits below the full-corpus score and is set by the training size. At 5,000 training and 500 test materials a typical score moves by about &plusmn;<span data-live="half500">0.024</span> and sits about <span data-live="gap5k">0.061</span> below its ceiling.</li>
 <li><strong>Use floors of 5,000 training and 500 test materials</strong>, 6,250 materials in total at 80/20. Targets differ five- to ninefold, so for a single property read its own row of the floors table.</li>
 <li><strong>Split 80/20.</strong><span class="needs-cv"> On small datasets, score with 5-fold cross-validation or five averaged splits, never a single split, and do not quote their 95&nbsp;% intervals as they stand.</span></li>
 <li><strong>Report the gain over composition per target.</strong> The embeddings beat Magpie from <span data-live="gainEarlyMaxN">500</span> training materials or fewer on <span data-live="gainEarlyCount">6</span> targets, from <span data-live="densityResolved">2,000</span> on density, and never on magnetic density.</li>
