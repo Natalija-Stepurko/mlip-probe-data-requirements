@@ -6,7 +6,7 @@ Every file here is written by this repository's code (`scripts/reproduce.sh`, or
 | | |
 |---|---|
 | measured | learning curves 2026-09-30; cross-validation 2026-09-30 to 2026-10-01 |
-| inputs | 154,875 Materials Project crystals: targets, ORB-v3 and UMA-S pooled node embeddings (backbone layer; UMA-S rotation-invariant `ang_norm` read-out), Magpie composition features, and the paper's full-corpus probe scores |
+| inputs | 154,875 Materials Project crystals: targets, ORB-v3 and UMA-S pooled node embeddings (backbone layer), Magpie composition features, and the paper's full-corpus probe scores |
 | environment | Python 3.12, `requirements-lock.txt` (numpy 2.4.4, pandas 2.3.3, scikit-learn 1.8.0, xgboost 3.3.0) |
 | machine | 8-core CPU, no GPU |
 

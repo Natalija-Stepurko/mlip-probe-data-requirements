@@ -1,7 +1,7 @@
 """On a small dataset, is k-fold cross-validation a better estimate of a probe's score than one
 80/20 split or a handful of repeated splits?
 
-Its results feed the cross-validation section of docs/index.html; this experiment is not in the paper.
+Its results feed the cross-validation section of docs/index.html.
 
 Per arm, target and dataset size n (XGBoost probe): cv_draws disjoint draws of n rows from the
 training pool. The truth for a draw is the score of a probe fitted on all n rows and scored on
