@@ -755,11 +755,7 @@ before combining spread with shortfall.</p>
 </figure>
 <p>Every dot sits below the dashed 0.95 line. Cross-validation's interval is the narrowest of the three, and it is the less reliable of the pair at 100, 200 and 2,000 materials on both embeddings and at 1,000 on UMA-S. Cross-validation is therefore the most accurate point estimate and the least reliable interval. For how much a score moves, quote the spread measured on this page for the test size in hand.</p>
 
-<div class="call">
-<p><strong>Main conclusion.</strong> For limited datasets, 5-fold cross-validation is the best of the three procedures tested for estimating the score itself, and its advantage is largest when the dataset is very small. Five averaged splits come close; a single split is substantially noisier and should not be used. None of the reported 95&nbsp;% intervals reaches its stated coverage, cross-validation's least of all, so they should be read with caution, and the comparison carries the training-size mismatch described above.</p>
-</div>
-
-<details class="every"><summary>More on the cross-validation comparison &mdash; by property and size, what it does not change, and its limits</summary><div class="inner"><h3>By property and dataset size</h3>
+<h3>By property and dataset size</h3>
 <div class="cvx">
   <div class="cvx-strip">
     <div class="cvx-stat"><span class="k">CV closer than five splits in</span><span class="v" data-live="cvWin3">84 %</span></div>
@@ -793,7 +789,11 @@ before combining spread with shortfall.</p>
 </tbody></table></div>
 <p>CV has the lower RMSE in <span data-live="bgWin">9</span> of <span data-live="bgCells">10</span> cells; its coverage is below 0.90 in <span data-live="bgCvLow">6</span> of the <span data-live="bgCells">10</span>, and the five-split average's in <span data-live="bgRhLow">4</span>. Draws are 20 at every n. The shortfall column is the same quantity for both arms, since both train on 0.8n.</p></div></details>
 
-<h3>What cross-validation does not change</h3>
+<div class="call">
+<p><strong>Main conclusion.</strong> For limited datasets, 5-fold cross-validation is the best of the three procedures tested for estimating the score itself, and its advantage is largest when the dataset is very small. Five averaged splits come close; a single split is substantially noisier and should not be used. None of the reported 95&nbsp;% intervals reaches its stated coverage, cross-validation's least of all, so they should be read with caution, and the comparison carries the training-size mismatch described above.</p>
+</div>
+
+<details class="every"><summary>More on the cross-validation comparison &mdash; what it does not change, and its limits</summary><div class="inner"><h3>What cross-validation does not change</h3>
 <p>Cross-validation makes the estimate of a small-data probe's score more accurate. It does not bring that score closer to what the same embedding reaches on the full corpus, because each of its models still trains on 80&nbsp;% of the data. For an embedding comparison, that distance is usually the larger error.</p>
 <p class="sub">Band gap, ORB-v3. Bias is the shortfall from the full-corpus score at 80&nbsp;% of the data; noise is the spread of each method's error across datasets; total combines the two.</p>
 <div class="scroll"><table>
