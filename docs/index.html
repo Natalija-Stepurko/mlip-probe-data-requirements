@@ -52,6 +52,8 @@ tr.settled td:not([rowspan]){background:color-mix(in srgb,var(--hl,var(--axis)) 
 tr.settled .num:last-child{font-weight:700;color:var(--hl,var(--ink))}
 table.gain-sum th,table.gain-sum td{padding:6px 10px}
 table.compact th,table.compact td{padding:6px 10px}
+.concl{margin:8px 0 0;padding-left:22px}
+.concl li{margin:0 0 12px;padding-left:4px}
 .cv-fig{margin:6px 0 8px}
 .cv-fig .keyline{padding-left:4px}
 .grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -1644,30 +1646,12 @@ materials formation energy is essentially at its ceiling, while crystal system i
 </div>
 
 <h2 id="conclusion">Conclusion</h2>
-<p>Three properties of a score follow from the split sizes, and the first two are independent:</p>
-<div class="scroll"><table>
-<thead><tr><th>property</th><th>threshold</th><th>measured from</th></tr></thead>
-<tbody>
-<tr><td><strong>spread</strong> &mdash; how far a re-split moves the score</td><td class="num">set by n_test</td><td>p10&ndash;p90 is 0.081 at 200 test materials, 0.033 at 1,000</td></tr>
-<tr><td><strong>shortfall</strong> &mdash; how far the score sits below the full corpus</td><td class="num">set by n_train</td><td><span data-live="gap5k">0.061</span> at 5,000 training materials; targets range <span data-live="gapEasy">0.017</span> to <span data-live="gapHard">0.128</span> there</td></tr>
-<tr><td><strong>gain over composition</strong> &mdash; what the embedding adds to the formula</td><td class="num">set by n_train and the target</td><td>resolvable from <span data-live="gainEarlyMaxN">500</span> training materials or fewer on <span data-live="gainEarlyCount">6</span> targets, from <span data-live="densityResolved">2,000</span> on density, never on magnetic density</td></tr>
-</tbody></table></div>
-
-<p>At a given dataset size the first two trade off against each other through the split, and neither is fixed by the dataset size alone &mdash; both are set by where the split is put. A score from 5,000 training and 500 test materials reproduces to about &plusmn;<span data-live="half500">0.024</span> and sits about <span data-live="gap5k">0.061</span> below the full-corpus value. Both hold simultaneously: the number moves by that much on a re-split and it is a lower bound.</p>
-
-<p>The second one has to be reported per target because it does not summarise. At 5,000 training materials formation energy is <span data-live="gapEasy">0.017</span> short and crystal system <span data-live="gapHard">0.128</span>, and the span widens with training data. No single number of materials stands in for it: the shortfall differs about five- to ninefold between the easiest and hardest target at every size.</p>
-
-<p>The third does not follow from the other two. Whether the embedding beats the formula
-alone is resolvable from <span data-live="gainEarlyMaxN">500</span> training materials or
-fewer on <span data-live="gainEarlyCount">6</span> targets, from
-<span data-live="densityResolved">2,000</span> on density, and never on magnetic density,
-where composition alone is ahead of ORB-v3 and, from 2,000 to 10,000 training materials, of UMA-S. A score can be settled
-and near its ceiling and still owe everything to the formula, so the gain over composition
-has to be reported beside the shortfall, per target, to say whether it does.</p>
-
-<p><strong>The regime that keeps total error within 0.005 of the minimum at every size from 500 materials up is an 80/20 split<span class="needs-cv">, scored on small datasets by 5-fold cross-validation or five averaged splits, never one</span>.</strong><span class="needs-cv"> None of the three methods' 95&nbsp;% intervals holds its coverage, so the spread measured on this page is the better guide to how much a score would move.</span> The best fraction drifts toward training data as the dataset grows &mdash; 80/20 has the lowest median total error at 500 and 5,000 materials, and 90/10 edges it by 0.001&ndash;0.004 at the other sizes from 1,000 up &mdash; but from 1,000 materials up 90/10, 80/20 and 70/30 sit within 0.01 of each other, so an 80/20 split, with a wider test fraction when a dataset is small, covers the measured range.</p>
-
-<p><strong>The floors are 5,000 training and 500 test materials &mdash; at 80/20 the training floor takes 6,250 materials in total, which puts 1,250 in the test set.</strong> Neither curve has a natural cut, so the floors are set by how much data it is reasonable to demand, and a single property can need far less or far more: its own floors are in its row of the table above.</p>
+<ol class="concl">
+<li><strong>Report two numbers with every score.</strong> The spread says how far a re-split would move it and is set by the test size; the shortfall says how far it sits below the full-corpus score and is set by the training size. At 5,000 training and 500 test materials a typical score moves by about &plusmn;<span data-live="half500">0.024</span> and sits about <span data-live="gap5k">0.061</span> below its ceiling.</li>
+<li><strong>Use floors of 5,000 training and 500 test materials</strong>, 6,250 materials in total at 80/20. Targets differ five- to ninefold, so for a single property read its own row of the floors table.</li>
+<li><strong>Split 80/20.</strong><span class="needs-cv"> On small datasets, score with 5-fold cross-validation or five averaged splits, never a single split, and do not quote their 95&nbsp;% intervals as they stand.</span></li>
+<li><strong>Report the gain over composition per target.</strong> The embeddings beat Magpie from <span data-live="gainEarlyMaxN">500</span> training materials or fewer on <span data-live="gainEarlyCount">6</span> targets, from <span data-live="densityResolved">2,000</span> on density, and never on magnetic density.</li>
+</ol>
 
 <h2>References</h2>
 <ol class="refs">
