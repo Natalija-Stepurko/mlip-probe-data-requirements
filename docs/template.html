@@ -688,7 +688,7 @@ materials formation energy is essentially at its ceiling, while crystal system i
 <div class="needs-cv">
 <p class="sub">Given a small dataset, which way of measuring a probe's score gives the most reliable estimate?</p>
 
-<p>With a small dataset, measuring a probe creates a trade-off. Materials kept back for testing cannot be used for training, but a very small test set gives a noisy score. The aim here is not a better probe; it is the most accurate estimate of the probe's score from the same limited data. Three common ways of making that estimate are compared.</p>
+<p>With a small dataset, measuring a probe creates a trade-off. Materials kept back for testing cannot be used for training, but a very small test set gives a noisy score. Three common ways of making that estimate are compared.</p>
 
 <div class="scroll"><table class="compact">
 <thead><tr><th>method</th><th>procedure</th><th class="num">models<br>trained</th></tr></thead>
@@ -714,11 +714,10 @@ materials formation energy is essentially at its ceiling, while crystal system i
 <!--{{tbl_cv_accuracy}}-->
 </tbody></table></div>
 <p>5-fold cross-validation gives the score closest to the reference at every dataset size. Averaging five random splits closes most of the gap; a single split is much noisier, with 1.6 to 2 times the error of either alternative from 500 materials up.</p>
-<p>The table compares typical errors. The chart below compares cross-validation with the five-split average directly: each bar is the share by which cross-validation's error is smaller than the five-split average's, averaged over the nine properties at one dataset size.</p>
+<p>The chart below compares cross-validation with the five-split average directly: each bar is the share by which cross-validation's error is smaller than the five-split average's, averaged over the nine properties at one dataset size.</p>
 <figure class="panel cv-fig"><figcaption>How much smaller cross-validation's error is than that of five averaged 80/20 splits</figcaption>
 <!--{{fig_cv_gain}}-->
 </figure>
-<p>Every bar is above zero, so cross-validation is the more accurate of the two at every dataset size, on both embeddings. The gap is widest on the smallest datasets &mdash; 28&nbsp;% for ORB-v3 and 34&nbsp;% for UMA-S at 100 materials &mdash; where each of the five split scores is measured on only 20 materials and their average runs low. Comparing individual combinations, cross-validation is closer in <span data-live="cvWin">84</span>&nbsp;% of them, with a median <span data-live="cvGain">16.8</span>&nbsp;% lower error at 1,000 materials or fewer.</p>
 
 <h3>Reliability of the 95&nbsp;% intervals</h3>
 <p>Each method also reports a 95&nbsp;% interval around its score. An interval that is as reliable as it claims should contain the reference score on 95&nbsp;% of datasets.</p>
