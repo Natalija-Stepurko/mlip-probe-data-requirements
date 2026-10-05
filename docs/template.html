@@ -1293,7 +1293,7 @@ var REDUCED = !!(window.matchMedia &&
 (function(){
   var E = "orb", M = "red";
   var W = 700, H = 420, X0 = 168, X1 = 648, Y0 = 26, Y1 = 384;
-  var BAR = 0.30, BAND = [0.90, 0.98], NOMINAL = 0.95;
+  var NOMINAL = 0.95;
 
   function cells(){ return (DATA.cv || {})[E] || []; }
   function targets(){
@@ -1317,18 +1317,11 @@ var REDUCED = !!(window.matchMedia &&
     var x = function(v){ return X0 + (v-lo)/(hi-lo)*(X1-X0); };
 
     if (isCov){
-      o.push('<rect x="'+x(BAND[0]).toFixed(1)+'" y="'+Y0+'" width="'+
-             (x(BAND[1])-x(BAND[0])).toFixed(1)+'" height="'+(Y1-Y0).toFixed(1)+
-             '" style="fill:var(--band)"/>');
       o.push('<line x1="'+x(NOMINAL).toFixed(1)+'" y1="'+Y0+'" x2="'+x(NOMINAL).toFixed(1)+
              '" y2="'+Y1+'" style="stroke:var(--ink);stroke-width:1;stroke-dasharray:4 3"/>');
     } else {
       o.push('<line x1="'+x(0).toFixed(1)+'" y1="'+Y0+'" x2="'+x(0).toFixed(1)+'" y2="'+Y1+
              '" style="stroke:var(--ink);stroke-width:1"/>');
-      o.push('<line x1="'+x(0.30).toFixed(1)+'" y1="'+Y0+'" x2="'+x(0.30).toFixed(1)+'" y2="'+Y1+
-             '" style="stroke:var(--accent3);stroke-width:1.2;stroke-dasharray:5 3"/>');
-      o.push('<text x="'+(x(0.30)+5).toFixed(1)+'" y="'+(Y0+10)+'" font-size="9.5" '+
-             'fill="var(--accent3)">30 % bar</text>');
     }
     var ticks = isCov ? [0,0.25,0.50,0.75,1.00] : [-0.4,-0.2,0,0.2,0.4,0.6,0.8];
     ticks.forEach(function(v){
@@ -1360,21 +1353,21 @@ var REDUCED = !!(window.matchMedia &&
           });
         } else {
           if (r.red == null) return;
-          var beats = r.red >= 0.30;
+          var closer = r.red > 0;
           o.push('<line x1="'+x(0).toFixed(1)+'" y1="'+cy.toFixed(1)+'" x2="'+
                  x(r.red).toFixed(1)+'" y2="'+cy.toFixed(1)+
                  '" style="stroke:var(--rule);stroke-width:1"/>');
           o.push('<circle cx="'+x(r.red).toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="3.4" style="fill:'+
-                 (beats ? "var(--accent3)" : "var(--muted)")+';fill-opacity:'+
-                 (beats ? 1 : 0.55)+'" data-tip="'+tip.replace(/"/g,"&quot;")+'"/>');
+                 (closer ? "var(--accent3)" : "var(--panel)")+';stroke:var(--accent3);stroke-width:1.4" data-tip="'+
+                 tip.replace(/"/g,"&quot;")+'"/>');
         }
       });
     });
     o.push('<line x1="'+X0+'" y1="'+Y1+'" x2="'+X1+'" y2="'+Y1+
            '" style="stroke:var(--axis);stroke-width:1"/>');
-    o.push('<text x="'+X0+'" y="'+(H-6)+'" font-size="9.5" fill="var(--muted)">'+
-           (isCov ? 'x: coverage of the 95 % interval &#183; filled: cross-validation &#183; grey: five averaged splits &#183; shaded: the [0.90, 0.98] band, dashed: nominal 0.95'
-                  : 'x: error cut vs five averaged splits &#183; one dot per dataset size, '+fmt(NS[0])+' at the top of each row to '+fmt(NS[NS.length-1])+' at the bottom &#183; filled: clears the 30 % bar')+
+    o.push('<text x="12" y="'+(H-6)+'" font-size="9.5" fill="var(--muted)">'+
+           (isCov ? 'x: share of datasets inside the 95 % interval &#183; coloured: cross-validation &#183; grey: five averaged splits &#183; dashed: 0.95'
+                  : 'x: error cut vs five averaged splits &#183; filled: cross-validation closer &#183; hollow: further &#183; sizes '+fmt(NS[0])+' (top) to '+fmt(NS[NS.length-1])+' in each row')+
            '</text>');
     o.push('<text transform="rotate(-90)" x="'+(-(Y0+Y1)/2).toFixed(0)+'" y="12" text-anchor="middle" '+
            'font-size="9.5" fill="var(--muted)">target</text>');
@@ -1410,10 +1403,10 @@ var REDUCED = !!(window.matchMedia &&
     });
   }
   bind("cvxE", "e", function(v){ E = v;
-    document.querySelector(".cvx").style.setProperty("--accent3",
+    $("cvxChart").closest(".cvx").style.setProperty("--accent3",
       E === "orb" ? "var(--orb)" : "var(--uma)"); });
   bind("cvxM", "m", function(v){ M = v; });
-  document.querySelector(".cvx").style.setProperty("--accent3", "var(--orb)");
+  $("cvxChart").closest(".cvx").style.setProperty("--accent3", "var(--orb)");
   draw();
 })();
 
