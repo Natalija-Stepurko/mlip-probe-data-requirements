@@ -103,7 +103,8 @@ src/mlip_probe/
 results/         raw per-draw scores and every derived table (PROVENANCE.md)
 docs/            the results page: template.html (authored) and index.html (built)
 tests/           unit tests, an end-to-end run on synthetic data, and a rebuild of results/
-scripts/         reproduce.sh (full re-run), check_page.js (runs the page in jsdom)
+scripts/         reproduce.sh (full re-run), check_page.js (runs the page in jsdom),
+                 make_preview_card.py (docs/card.png, the link-preview image)
 ```
 
 ## Running it
