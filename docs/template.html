@@ -682,46 +682,58 @@ materials formation energy is essentially at its ceiling, while crystal system i
 
 <p>A score below the training floor is not worthless &mdash; it is a lower bound, and should be reported as one, with its per-target shortfall beside it. Below the test floor it is noisier, and should be reported with its spread. Buying 0.011 of shortfall for another 2,500 materials is a trade for the reader to make.</p>
 
-<h2 id="cv">Cross-validation: a better estimate from the same data?</h2>
+<h2 id="cv">Cross-validation: which evaluation method is most reliable with limited data?</h2>
 <div class="call warn cv-pending"><p>The cross-validation comparison has not been run to completion yet; its results will appear here.</p></div>
 <div class="needs-cv">
-<p class="sub">With a small dataset, the score you report is itself an estimate. This section compares three ways of making that estimate from the same materials.</p>
+<p class="sub">Given a small dataset, which way of measuring a probe's score gives the most reliable estimate?</p>
 
-<p><strong>The problem.</strong> To know how well a probe predicts a property, you score it on materials it was not trained on. With a small dataset every material held back for testing is one fewer to train on, and a test set of a few hundred materials gives a noisy score. There are three common ways to spend the materials you have:</p>
+<p>With a small dataset, measuring a probe creates a trade-off. Materials kept back for testing cannot be used for training, but a very small test set gives a noisy score. The aim here is not a better probe; it is the most accurate estimate of the probe's score from the same limited data. Three common ways of making that estimate are compared.</p>
 
-<div class="steps">
-<div class="step"><h3>One 80/20 split</h3><p>Train on 80&nbsp;% of the materials, score on the other 20&nbsp;%. One model, one score; only a fifth of the data is ever used for scoring.</p></div>
-<div class="step"><h3>Five 80/20 splits, averaged</h3><p>Repeat the split five times with different random 20&nbsp;% test sets and average the five scores. Five models; the test sets overlap, so some materials are scored several times and some never.</p></div>
-<div class="step"><h3>5-fold cross-validation</h3><p>Cut the data into five equal parts. Train on four, predict the fifth, and rotate until every part has been predicted once. Every material is predicted exactly once by a model that never saw it, and all the predictions are scored together. Five models, the same cost as five splits.</p></div>
+<div class="scroll"><table class="compact">
+<thead><tr><th>method</th><th>procedure</th><th class="num">models<br>trained</th></tr></thead>
+<tbody>
+<tr><td>single 80/20 split</td><td style="white-space:normal">train on 80&nbsp;% of the materials, score on the other 20&nbsp;%, once</td><td class="num">1</td></tr>
+<tr><td>five 80/20 splits, averaged</td><td style="white-space:normal">repeat five random 80/20 splits and average the five scores</td><td class="num">5</td></tr>
+<tr><td>5-fold cross-validation</td><td style="white-space:normal">cut the materials into five equal parts; train on four and predict the fifth, rotating until every material has been predicted once; score all predictions together</td><td class="num">5</td></tr>
+</tbody></table></div>
+<p><strong>In all three methods, each individual model is trained on 80&nbsp;% of the small dataset.</strong> They differ only in how the held-out materials are used to score it. In 5-fold cross-validation every material is scored exactly once, by a model that was not trained on it.</p>
+
+<h3 class="lead">How the methods were evaluated</h3>
+<p>Someone who has only a small dataset cannot know how well their probe really performs; that is what the estimate is for. Here the much larger corpus makes it possible to approximate. A frozen test set of 20,000 materials (6,426 for bulk modulus) is kept out of everything. For each small dataset of <em>n</em> materials, a probe is trained on all <em>n</em> and scored on those 20,000. Because that test set is large, this score is used as the <strong>reference score</strong> for the small dataset. It is a different number from the paper's full-corpus score used elsewhere on this page, which belongs to a probe trained on all 154,875 materials.</p>
+<p>Each of the three methods then estimates the score from the <em>n</em> materials alone, and its estimate is compared with the reference score. The comparison covers <span data-live="cvCells">90</span> combinations &mdash; two embeddings, nine properties, five dataset sizes from 100 to 2,000 materials &mdash; with 20 independent datasets for each (fewer for bulk modulus above 500).</p>
+<div class="call warn">
+<p><strong>Important caveat.</strong> The reference probe is trained on all <em>n</em> materials, while every model inside the three methods is trained on 0.8<em>n</em>. The difference from the reference therefore includes both the error of the method and a small effect of the smaller training set; all three methods share that effect, so it lowers all three estimates slightly.</p>
 </div>
 
-<p>All three train each model on 80&nbsp;% of the data, so they all estimate the same thing: how well a probe trained on that much data does. They differ only in how they use the materials for scoring.</p>
-
-<h3>How they were compared</h3>
-<p>Someone who has only a small dataset cannot know how good their probe really is; that is what the estimate is for. This test can know it, because it has far more materials than any small dataset. A frozen set of 20,000 materials (6,426 for bulk modulus) is kept out of everything. For each small dataset of <em>n</em> materials drawn from the rest, a probe trained on all <em>n</em> is scored on those 20,000; a score measured on that many unseen materials is precise enough to treat as the probe's <strong>true score</strong>. It is a different number from the paper's full-corpus score used elsewhere on this page, which belongs to a probe trained on all 154,875 materials. Each of the three methods then estimates the true score from the <em>n</em> materials alone. This is repeated on <span data-live="cvCells">90</span> combinations &mdash; two embeddings, nine properties, five dataset sizes from 100 to 2,000 materials &mdash; with 20 separate datasets each (fewer on bulk modulus above 500).</p>
-
-<div class="scroll"><table>
-<thead><tr><th rowspan="2">method</th><th rowspan="2" class="num">models<br>trained</th><th colspan="2" class="num">typical error of the reported score</th><th colspan="2" class="num">how often its 95&nbsp;% interval contains&hellip;</th></tr>
-<tr><th class="num">dataset of<br>200 materials</th><th class="num">dataset of<br>1,000 materials</th><th class="num">&hellip;the true<br>score</th><th class="num">&hellip;the expected score<br>at 80&nbsp;% of the data</th></tr></thead>
+<h3 class="lead">Accuracy of the reported score</h3>
+<p>The typical error is the root-mean-square difference between a method's reported score and the reference score over the 20 datasets of a size, as a median over properties and embeddings (R&sup2; or macro-F1). The lowest in each column is in bold.</p>
+<div class="scroll"><table class="compact">
+<thead><tr><th>method</th><th class="num">dataset of<br>100</th><th class="num">dataset of<br>200</th><th class="num">dataset of<br>500</th><th class="num">dataset of<br>1,000</th><th class="num">dataset of<br>2,000</th></tr></thead>
 <tbody>
-<!--{{tbl_cv_overview}}-->
+<!--{{tbl_cv_accuracy}}-->
 </tbody></table></div>
-<p class="sub">Each method sees one small dataset and reports a score with a 95&nbsp;% interval around it. <strong>Typical error</strong>: how far the reported score lands from the true score, as a root-mean-square over the 20 datasets of that size, median over properties and embeddings (R&sup2; or macro-F1). The dataset is everything the method has; each of its models trains on 80&nbsp;% of it. <strong>Interval columns</strong>: the share of datasets on which the reported interval contained the true score, or the expected score of a probe trained on 80&nbsp;% of the dataset, which is what every method actually trains on; averaged over all 90 combinations, which span the five dataset sizes from 100 to 2,000. An interval that is as reliable as it claims would read 0.95.</p>
-
-<h3>What the data supports</h3>
-<p><strong>Never rely on a single split.</strong> One 80/20 split is the least accurate of the three at every size, with roughly twice the error of the other two at 1,000 materials. Both alternatives beat it in almost every combination.</p>
-<p><strong>Cross-validation is a little more accurate than five averaged splits, at the same cost.</strong> It is closer to the true score in <span data-live="cvWin">84</span>&nbsp;% of the combinations, with a median <span data-live="cvGain">16.8</span>&nbsp;% lower error at 1,000 materials or fewer. The largest advantage is at 100 materials, where averaging five scores, each measured on only 20 materials, drags the estimate down: on energy above hull with ORB-v3 the five-split average sits 0.87 below the true score on average, and cross-validation 0.11. Scoring all predictions together avoids that.</p>
+<p>5-fold cross-validation gives the score closest to the reference at every dataset size. Averaging five random splits closes most of the gap; a single split is much noisier, with 1.6 to 2 times the error of either alternative from 500 materials up. Compared combination by combination, cross-validation is closer than the five-split average in <span data-live="cvWin">84</span>&nbsp;% of cases, with a median <span data-live="cvGain">16.8</span>&nbsp;% lower error at 1,000 materials or fewer, and its advantage is largest at 100 materials.</p>
 <figure class="panel cv-fig"><figcaption>How much smaller cross-validation's error is than that of five averaged 80/20 splits</figcaption>
 <!--{{fig_cv_gain}}-->
 </figure>
-<p class="sub">Each bar is one dataset size, averaged over the nine properties: 1&nbsp;&minus; (cross-validation's error &divide; the five-split average's error). +20&nbsp;% means cross-validation's estimate is 20&nbsp;% closer to the true score; a bar below zero would mean it is further away.</p>
-<p><strong>None of the three intervals can be taken at face value.</strong> A 95&nbsp;% interval should contain the true score 95&nbsp;% of the time; these contain it 81&ndash;88&nbsp;% of the time. Part of the miss comes from the comparison itself: every method trains on 80&nbsp;% of the data and the true score uses all of it, so all three run slightly low. Measured against the expected score of a probe trained on 80&nbsp;% of the data, the intervals still contain it only 87&ndash;90&nbsp;% of the time. Cross-validation's interval is the narrowest, so it misses most often. Quote the spread measured on this page for the test size in hand, which is wider.</p>
-<figure class="panel cv-fig"><figcaption>How often each method's 95&nbsp;% interval contains the true score</figcaption>
+<p class="sub">Each bar is one dataset size, averaged over the nine properties: 1&nbsp;&minus; (cross-validation's error &divide; the five-split average's error). +20&nbsp;% means cross-validation's estimate is 20&nbsp;% closer to the reference score; a bar below zero would mean it is further away.</p>
+
+<h3 class="lead">Reliability of the 95&nbsp;% intervals</h3>
+<p>Each method also reports a 95&nbsp;% interval around its score. An interval that is as reliable as it claims should contain the reference score on 95&nbsp;% of datasets.</p>
+<div class="scroll"><table class="compact">
+<thead><tr><th>method</th><th class="num">interval contains<br>the reference score</th><th class="num">interval contains the expected<br>score at 80&nbsp;% of the data</th></tr></thead>
+<tbody>
+<!--{{tbl_cv_intervals}}-->
+</tbody></table></div>
+<p class="sub">Share of datasets, averaged over all 90 combinations. The second column checks the caveat above: it compares each interval with the expected score of a probe trained on 80&nbsp;% of the dataset, which is what every method actually trains.</p>
+<p>None of the methods reaches 95&nbsp;%. Cross-validation, the most accurate point estimate, has the narrowest interval and the lowest coverage. Comparing with the expected score at 80&nbsp;% of the data lifts all three, to 87&ndash;90&nbsp;%, so the training-size mismatch explains only part of the shortfall. Quote the spread measured on this page for the test size in hand, which is wider.</p>
+<figure class="panel cv-fig"><figcaption>How often each method's 95&nbsp;% interval contains the reference score</figcaption>
 <p class="keyline"><span class="key"><i class="kc" style="background:var(--ink)"></i>five averaged 80/20 splits</span><span class="key"><i class="kc" style="background:var(--orb)"></i><i class="kc" style="background:var(--uma)"></i>5-fold cross-validation</span><span class="key"><i class="kd"></i>dashed: 0.95, what a 95&nbsp;% interval promises</span></p>
 <!--{{fig_cv_coverage}}-->
 </figure>
 <p class="sub">Each pair of dots is one dataset size, averaged over the nine properties.</p>
 
+<h3 class="lead">By property and dataset size</h3>
 <div class="cvx">
   <div class="cvx-strip">
     <div class="cvx-stat"><span class="k">CV closer than five splits in</span><span class="v" data-live="cvWin3">84 %</span></div>
@@ -746,17 +758,6 @@ materials formation energy is essentially at its ceiling, while crystal system i
   </div>
   <p class="sfx-cap" id="cvxCap"></p>
 </div>
-
-<h3>What it does not change</h3>
-<p>Cross-validation makes the estimate of a small-data probe's score more accurate. It does not make that score closer to what the same embedding reaches on the full corpus, because every one of its models still trains on 80&nbsp;% of the data. For an embedding comparison, that distance is usually the larger error: in the budget below, the noise cross-validation removes is small next to it.</p>
-<p class="sub">Band gap, ORB-v3. Bias is the shortfall from the full-corpus score at 80&nbsp;% of the data; noise is the spread of each method's error across datasets; total combines the two.</p>
-<div class="scroll"><table>
-<thead><tr><th class="num">materials</th><th class="num">bias</th><th class="num">noise: 1 split</th><th class="num">5 splits</th><th class="num">CV</th><th class="num">total: 1 split</th><th class="num">5 splits</th><th class="num">CV</th></tr></thead>
-<tbody>
-<!--{{tbl_cv_budget}}-->
-</tbody></table></div>
-<p>At <span data-live="budN">2,000</span> materials cross-validation cuts the noise from <span data-live="budNoise1">0.020</span> (one split) to <span data-live="budNoiseCv">0.011</span>, and the total from <span data-live="budTot1">0.125</span> to <span data-live="budTotCv">0.124</span>, because the bias of <span data-live="budBias">0.123</span> dominates.</p>
-
 <details class="every"><summary>Full data &mdash; band gap, five averaged splits and cross-validation at every dataset size</summary><div class="inner">
 <p class="sub">Shortfall is the distance from the full-corpus score at the training size each arm uses, 0.8n.</p>
 <div class="scroll"><table>
@@ -766,14 +767,24 @@ materials formation energy is essentially at its ceiling, while crystal system i
 </tbody></table></div>
 <p>CV has the lower RMSE in <span data-live="bgWin">9</span> of <span data-live="bgCells">10</span> cells; its coverage is below 0.90 in <span data-live="bgCvLow">6</span> of the <span data-live="bgCells">10</span>, and the five-split average's in <span data-live="bgRhLow">4</span>. Draws are 20 at every n. The shortfall column is the same quantity for both arms, since both train on 0.8n.</p></div></details>
 
+<h3 class="lead">What cross-validation does not change</h3>
+<p>Cross-validation makes the estimate of a small-data probe's score more accurate. It does not bring that score closer to what the same embedding reaches on the full corpus, because each of its models still trains on 80&nbsp;% of the data. For an embedding comparison, that distance is usually the larger error.</p>
+<p class="sub">Band gap, ORB-v3. Bias is the shortfall from the full-corpus score at 80&nbsp;% of the data; noise is the spread of each method's error across datasets; total combines the two.</p>
+<div class="scroll"><table>
+<thead><tr><th class="num">materials</th><th class="num">bias</th><th class="num">noise: 1 split</th><th class="num">5 splits</th><th class="num">CV</th><th class="num">total: 1 split</th><th class="num">5 splits</th><th class="num">CV</th></tr></thead>
+<tbody>
+<!--{{tbl_cv_budget}}-->
+</tbody></table></div>
+<p>At <span data-live="budN">2,000</span> materials cross-validation cuts the noise from <span data-live="budNoise1">0.020</span> (one split) to <span data-live="budNoiseCv">0.011</span>, and the total from <span data-live="budTot1">0.125</span> to <span data-live="budTotCv">0.124</span>, because the bias of <span data-live="budBias">0.123</span> dominates.</p>
+
 <div class="call">
-<p><strong>On small datasets, score with 5-fold cross-validation or five averaged splits, never one split; cross-validation is the slightly more accurate of the two at the same cost.</strong> Neither moves the score closer to the full-corpus value, and neither's 95&nbsp;% interval should be quoted as it stands.</p>
+<p><strong>Main conclusion.</strong> For limited datasets, 5-fold cross-validation is the best of the three procedures tested for estimating the score itself, and its advantage is largest when the dataset is very small. Five averaged splits come close; a single split is substantially noisier and should not be used. None of the reported 95&nbsp;% intervals reaches its stated coverage, cross-validation's least of all, so they should be read with caution, and the comparison carries the training-size mismatch described above.</p>
 </div>
 
 <div class="limits">
 <span class="tag">what this does not settle</span>
 <ul>
-<li>Each combination rests on 20 datasets, so its own interval-coverage figure is uncertain by about &plusmn;0.05; the averages over 90 combinations are firmer.</li>
+<li>Each combination rests on 20 datasets, so its own coverage figure is uncertain by about &plusmn;5 percentage points; the averages over 90 combinations are firmer.</li>
 <li>Only the XGBoost probe, only 5 folds, and only datasets of 100 to 2,000 materials were tested.</li>
 <li>Bulk modulus has fewer datasets above 500 materials (12, 6 and 3 at 500, 1,000 and 2,000) because its pool runs out.</li>
 </ul>

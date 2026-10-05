@@ -323,7 +323,7 @@ def floor_strip(results: Results) -> str:
     return "".join(f'<div class="cvx-stat"><span class="k">{k}</span><span class="v">{v}</span></div>' for k, v in stats)
 
 
-ESTIMATORS = (("single", "one 80/20 split", 1), ("repeated", "five 80/20 splits, averaged", 5),
+ESTIMATORS = (("single", "single 80/20 split", 1), ("repeated", "five 80/20 splits, averaged", 5),
               ("cv", "5-fold cross-validation", 5))
 
 
@@ -344,22 +344,46 @@ def _cv_draws(results: Results) -> pd.DataFrame:
     return pd.concat(frames) if frames else pd.DataFrame()
 
 
-def cv_overview(results: Results, sizes=(200, 1000)) -> str:
-    """Per estimator: fits, typical error against the true score (median over cells of the RMSE) at
-    two dataset sizes, and how often its 95 % interval contains the true score, averaged over cells."""
+def _cv_cells(results: Results) -> pd.DataFrame:
+    """Per embedding, target, dataset size and method: RMSE against the reference score, and how often
+    the 95 % interval contains the reference score and the expected score at 0.8n."""
     d = _cv_draws(results)
     if d.empty:
-        return ""
+        return d
     d = d[d.lo.notna()].copy()
     d["in_true"] = (d.lo <= d.truth) & (d.truth <= d.hi)
     d["in_expected"] = (d.lo <= d.expected) & (d.expected <= d.hi)
-    cell = d.groupby(["arm", "target", "n", "estimator"]).agg(
+    return d.groupby(["arm", "target", "n", "estimator"]).agg(
         rmse=("error", lambda e: float(np.sqrt((e ** 2).mean()))), in_true=("in_true", "mean"),
         in_expected=("in_expected", "mean")).reset_index()
+
+
+def cv_accuracy(results: Results) -> str:
+    """Per method and dataset size: the median over embeddings and targets of the RMSE between the
+    reported score and the reference score; the lowest in each column in bold."""
+    cell = _cv_cells(results)
+    if cell.empty:
+        return ""
+    sizes = sorted(cell.n.unique())
+    med = cell.groupby(["estimator", "n"]).rmse.median()
+    best = {n: min(med[(k, n)] for k, _, _ in ESTIMATORS) for n in sizes}
     rows = []
     for key, name, fits in ESTIMATORS:
+        cells = "".join(f'<td class="num">{"<strong>" if med[(key, n)] == best[n] else ""}{med[(key, n)]:.3f}'
+                        f'{"</strong>" if med[(key, n)] == best[n] else ""}</td>' for n in sizes)
+        rows.append(f'<tr><td>{name}</td>{cells}</tr>')
+    return "\n".join(rows)
+
+
+def cv_intervals(results: Results) -> str:
+    """Per method: the share of datasets on which the 95 % interval contains the reference score, and
+    the expected score at 0.8n, averaged over all cells."""
+    cell = _cv_cells(results)
+    if cell.empty:
+        return ""
+    rows = []
+    for key, name, _ in ESTIMATORS:
         c = cell[cell.estimator == key]
-        err = "".join(f'<td class="num">{c[c.n == n].rmse.median():.3f}</td>' for n in sizes)
-        rows.append(f'<tr><td>{name}</td><td class="num">{fits}</td>{err}'
-                    f'<td class="num">{c.in_true.mean():.2f}</td><td class="num">{c.in_expected.mean():.2f}</td></tr>')
+        rows.append(f'<tr><td>{name}</td><td class="num">{100 * c.in_true.mean():.0f}&nbsp;%</td>'
+                    f'<td class="num">{100 * c.in_expected.mean():.0f}&nbsp;%</td></tr>')
     return "\n".join(rows)
