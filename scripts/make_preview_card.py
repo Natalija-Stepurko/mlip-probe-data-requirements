@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 from mlip_probe.config import ARM_COLOURS  # noqa: E402
 from mlip_probe.site.data import MODEL_NAME, Results  # noqa: E402
 
-TITLE = "When is a representation benchmark\ntrustworthy under limited data?"
+TITLE = "When is a probe score\ntrustworthy under limited data?"
 LEDE = ("How many labelled materials a probe on\n"
         "frozen ORB-v3 and UMA-S embeddings needs:\n"
         "learning curves on 154,875 Materials\n"

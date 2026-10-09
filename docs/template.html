@@ -6,7 +6,7 @@
 <link rel="canonical" href="https://natalija-stepurko.github.io/mlip-probe-data-requirements/">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Crect%20width%3D%2232%22%20height%3D%2232%22%20rx%3D%226%22%20fill%3D%22%2316191D%22/%3E%3Cpath%20d%3D%22M6%208%20Q12%2020%2026%2024%22%20fill%3D%22none%22%20stroke%3D%22%231F6F6B%22%20stroke-width%3D%223%22/%3E%3Cpath%20d%3D%22M6%2012%20Q13%2022%2026%2025%22%20fill%3D%22none%22%20stroke%3D%22%23C2681A%22%20stroke-width%3D%223%22/%3E%3C/svg%3E">
 <meta property="og:type" content="article">
-<meta property="og:title" content="When is a representation benchmark trustworthy under limited data?">
+<meta property="og:title" content="When is a probe score trustworthy under limited data?">
 <meta property="og:description" content="How many labelled materials a probe on frozen ORB-v3 and UMA-S embeddings needs before its score can be trusted: learning curves on 154,875 Materials Project crystals and nine properties, with a composition-only Magpie baseline.">
 <meta property="og:url" content="https://natalija-stepurko.github.io/mlip-probe-data-requirements/">
 <meta property="og:image" content="https://natalija-stepurko.github.io/mlip-probe-data-requirements/card.png">
@@ -14,10 +14,10 @@
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Median shortfall from the full-data score against the number of training materials, for ORB-v3 and UMA-S, with the 5,000-material training floor marked.">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="When is a representation benchmark trustworthy under limited data?">
+<meta name="twitter:title" content="When is a probe score trustworthy under limited data?">
 <meta name="twitter:description" content="How many labelled materials a probe on frozen ORB-v3 and UMA-S embeddings needs before its score can be trusted: learning curves on 154,875 Materials Project crystals and nine properties, with a composition-only Magpie baseline.">
 <meta name="twitter:image" content="https://natalija-stepurko.github.io/mlip-probe-data-requirements/card.png">
-<title>Trustworthy benchmarks under limited data</title>
+<title>Trustworthy probe scores under limited data</title>
 <style>
 /* ---- theme tokens ------------------------------------------------------- */
 :root{
@@ -274,7 +274,7 @@ h2{scroll-margin-top:66px}
 <div class="wrap">
 <header>
 <p class="eyebrow">Companion to Stepurko,&nbsp;N. &amp; Laulainen,&nbsp;J. (2026), <em>Out-of-training properties in frozen interatomic potential embeddings are decodable and ordered by physical scale</em> &mdash; accepted at the AI4Sci and AI4Mat workshops, NeurIPS 2026. The paper is released in November 2026; the code and result tables behind this page are at <a href="https://github.com/Natalija-Stepurko/mlip-probe-data-requirements">mlip-probe-data-requirements</a>.</p>
-<h1>When is a representation benchmark trustworthy under limited data?</h1>
+<h1>When is a probe score trustworthy under limited data?</h1>
 <p class="lede">An empirical study of how many labelled materials a probe on a frozen machine-learned interatomic potential needs before its score can be trusted: how far it sits below what more data would give, how much it moves with the test set, and how much of it the chemical formula alone explains.</p>
 </header>
 
@@ -347,7 +347,7 @@ measured.</p>
 was measured on a probe trained on 20,000 materials (6,427 for bulk modulus). A probe trained on less sits
 further from its ceiling and scatters more, so the spread is scaled up by
 (1&minus;score)/(1&minus;ceiling) first. This treats the 20,000-material probe as if it were at its ceiling, so the scaled spread errs high.</p>
-<h2 id="questions">Three questions behind every small-data benchmark</h2>
+<h2 id="questions">Three questions behind every small-data probe score</h2>
 <p class="sub">How much data do you need before a comparison between materials representations can be trusted? A score from a small dataset can mislead in three separate ways, and this page measures each one on frozen ORB-v3 and UMA-S embeddings over nine Materials Project properties.</p>
 <ol class="concl">
 <li><strong>Is the model trained on enough materials?</strong> A probe trained on few materials scores below what the same probe reaches with more data. That gap is the <em>shortfall</em>, and training size sets it.</li>
